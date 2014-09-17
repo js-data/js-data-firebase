@@ -53,9 +53,9 @@ module.exports = function (grunt) {
     browserify: {
       options: {
         browserifyOptions: {
-          standalone: 'FirebaseAdapter'
+          standalone: 'DSFirebaseAdapter'
         },
-        external: ['firebase']
+        external: ['firebase', 'js-data']
       },
       dist: {
         files: {
@@ -79,6 +79,7 @@ module.exports = function (grunt) {
         options: {
           files: [
             'bower_components/firebase/firebase.js',
+            'bower_components/js-data/dist/js-data.js',
             'dist/js-data-firebase.min.js',
             'karma.start.js',
             'test/**/*.js'

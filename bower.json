@@ -33,6 +33,7 @@
     "js-data": "0.0.1"
   },
   "devDependencies": {
-    "firebase": "~1.0.21"
+    "firebase": "~1.0.21",
+    "js-data": "~0.0.1"
   }
 }

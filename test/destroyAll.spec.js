@@ -1,7 +1,7 @@
-describe('firebaseAdapter#destroyAll', function () {
+describe('dsFirebaseAdapter#destroyAll', function () {
   it('should throw a "Not yet implemented!" error', function () {
     assert.throws(function () {
-      firebaseAdapter.destroyAll();
+      dsFirebaseAdapter.destroyAll();
     }, Error, 'Not yet implemented!');
   });
 });

@@ -21,6 +21,7 @@ module.exports = function (config) {
 		// list of files / patterns to load in the browser
 		files: [
 			'bower_components/firebase/firebase.js',
+			'bower_components/js-data/dist/js-data.js',
 			'dist/js-data-firebase.js',
 			'karma.start.js',
 			'test/**/*.js'

@@ -1,5 +1,5 @@
 // Setup global test variables
-var firebaseAdapter, User;
+var dsFirebaseAdapter, User;
 
 // Helper globals
 var fail = function (msg) {
@@ -38,7 +38,7 @@ beforeEach(function () {
     class: 'User',
     idAttribute: 'id'
   };
-  firebaseAdapter = new FirebaseAdapter({
+  dsFirebaseAdapter = new DSFirebaseAdapter({
     firebaseUrl: 'https://js-data-firebase.firebaseio.com'
   });
 });

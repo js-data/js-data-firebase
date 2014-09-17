@@ -1,28 +1,32 @@
-var deepMixIn = require('mout/object/deepMixIn');
-var makePath = require('mout/string/makePath');
-var P = require('es6-promise').Promise;
+var JSData, Firebase;
+if (!window && typeof module !== 'undefined' && module.exports) {
+  JSData = require('js-data');
+  Firebase = require('firebase');
+} else {
+  JSData = window.JSData;
+  Firebase = window.Firebase;
+}
+
+var deepMixIn = JSData.DSUtils.deepMixIn;
+var makePath = JSData.DSUtils.makePath;
+var P = JSData.DSUtils.Promise;
 
 function Defaults() {
 
 }
 
 function createRef(base, path) {
-  if (!window && typeof module !== 'undefined' && module.exports) {
-    var Firebase = require('firebase');
-    return new Firebase(makePath(base, path));
-  } else {
-    return new window.Firebase(makePath(base, path));
-  }
+  return new Firebase(makePath(base, path));
 }
 
 /**
  * @doc constructor
- * @id FirebaseAdapter
- * @name FirebaseAdapter
+ * @id DSFirebaseAdapter
+ * @name DSFirebaseAdapter
  * @description
  * Adapter to be used with js-data. This adapter uses <method> to send/retrieve data to/from a <persistence layer>.
  */
-function FirebaseAdapter(options) {
+function DSFirebaseAdapter(options) {
   options = options || {};
 
   if (typeof options.firebaseUrl !== 'string') {
@@ -31,17 +35,17 @@ function FirebaseAdapter(options) {
 
   /**
    * @doc property
-   * @id FirebaseAdapter.properties:defaults
+   * @id DSFirebaseAdapter.properties:defaults
    * @name defaults
    * @description
-   * Reference to [FirebaseAdapter.defaults](/documentation/api/api/FirebaseAdapter.properties:defaults).
+   * Reference to [DSFirebaseAdapter.defaults](/documentation/api/api/DSFirebaseAdapter.properties:defaults).
    */
   this.defaults = new Defaults();
   this.refs = {};
   deepMixIn(this.defaults, options);
 }
 
-FirebaseAdapter.prototype.getRef = function (name) {
+DSFirebaseAdapter.prototype.getRef = function (name) {
   if (!this.refs[name]) {
     this.refs[name] = createRef(this.defaults.firebaseUrl, name);
   }
@@ -50,14 +54,14 @@ FirebaseAdapter.prototype.getRef = function (name) {
 
 /**
  * @doc method
- * @id FirebaseAdapter.methods:find
+ * @id DSFirebaseAdapter.methods:find
  * @name find
  * @description
  * Retrieve a single entity from Firebase.
  *
  * ## Signature:
  * ```js
- * FirebaseAdapter.find(resourceConfig, id)
+ * DSFirebaseAdapter.find(resourceConfig, id)
  * ```
  *
  * @param {object} resourceConfig DS resource definition object.
@@ -65,7 +69,7 @@ FirebaseAdapter.prototype.getRef = function (name) {
  *
  * @returns {Promise} Promise.
  */
-FirebaseAdapter.prototype.find = function (resourceConfig, id) {
+DSFirebaseAdapter.prototype.find = function (resourceConfig, id) {
   var _this = this;
   return new P(function (resolve, reject) {
     var resourceRef = _this.getRef(resourceConfig.class);
@@ -77,14 +81,14 @@ FirebaseAdapter.prototype.find = function (resourceConfig, id) {
 
 /**
  * @doc method
- * @id FirebaseAdapter.methods:findAll
+ * @id DSFirebaseAdapter.methods:findAll
  * @name findAll
  * @description
  * Retrieve a collection of entities from Firebase.
  *
  * ## Signature:
  * ```js
- * FirebaseAdapter.findAll(resourceConfig[, params][, options])
+ * DSFirebaseAdapter.findAll(resourceConfig[, params][, options])
  * ```
  *
  * @param {object} resourceConfig DS resource definition object:
@@ -97,20 +101,20 @@ FirebaseAdapter.prototype.find = function (resourceConfig, id) {
  *
  * @returns {Promise} Promise.
  */
-FirebaseAdapter.prototype.findAll = function (resourceConfig, params, options) {
+DSFirebaseAdapter.prototype.findAll = function (resourceConfig, params, options) {
   throw new Error('Not yet implemented!');
 };
 
 /**
  * @doc method
- * @id FirebaseAdapter.methods:create
+ * @id DSFirebaseAdapter.methods:create
  * @name create
  * @description
  * Create a new entity in Firebase.
  *
  * ## Signature:
  * ```js
- * FirebaseAdapter.create(resourceConfig, attrs)
+ * DSFirebaseAdapter.create(resourceConfig, attrs)
  * ```
  *
  * @param {object} resourceConfig DS resource definition object:
@@ -118,7 +122,7 @@ FirebaseAdapter.prototype.findAll = function (resourceConfig, params, options) {
  *
  * @returns {Promise} Promise.
  */
-FirebaseAdapter.prototype.create = function (resourceConfig, attrs) {
+DSFirebaseAdapter.prototype.create = function (resourceConfig, attrs) {
   var _this = this;
   return new P(function (resolve, reject) {
     var resourceRef = _this.getRef(resourceConfig.class);
@@ -147,14 +151,14 @@ FirebaseAdapter.prototype.create = function (resourceConfig, attrs) {
 
 /**
  * @doc method
- * @id FirebaseAdapter.methods:update
+ * @id DSFirebaseAdapter.methods:update
  * @name update
  * @description
  * Update an entity in Firebase.
  *
  * ## Signature:
  * ```js
- * FirebaseAdapter.update(resourceConfig, id, attrs)
+ * DSFirebaseAdapter.update(resourceConfig, id, attrs)
  * ```
  *
  * @param {object} resourceConfig DS resource definition object:
@@ -163,7 +167,7 @@ FirebaseAdapter.prototype.create = function (resourceConfig, attrs) {
  *
  * @returns {Promise} Promise.
  */
-FirebaseAdapter.prototype.update = function (resourceConfig, id, attrs) {
+DSFirebaseAdapter.prototype.update = function (resourceConfig, id, attrs) {
   var _this = this;
   return new P(function (resolve, reject) {
     var resourceRef = _this.getRef(resourceConfig.class);
@@ -197,7 +201,7 @@ FirebaseAdapter.prototype.update = function (resourceConfig, id, attrs) {
 
 /**
  * @doc method
- * @id FirebaseAdapter.methods:updateAll
+ * @id DSFirebaseAdapter.methods:updateAll
  * @name updateAll
  * @description
  * Update a collection of entities in Firebase.
@@ -206,7 +210,7 @@ FirebaseAdapter.prototype.update = function (resourceConfig, id, attrs) {
  *
  * ## Signature:
  * ```js
- * FirebaseAdapter.updateAll(resourceConfig, attrs[, params][, options])
+ * DSFirebaseAdapter.updateAll(resourceConfig, attrs[, params][, options])
  * ```
  *
  * @param {object} resourceConfig DS resource definition object:
@@ -220,20 +224,20 @@ FirebaseAdapter.prototype.update = function (resourceConfig, id, attrs) {
  *
  * @returns {Promise} Promise.
  */
-FirebaseAdapter.prototype.updateAll = function (resourceConfig, attrs, params, options) {
+DSFirebaseAdapter.prototype.updateAll = function (resourceConfig, attrs, params, options) {
   throw new Error('Not yet implemented!');
 };
 
 /**
  * @doc method
- * @id FirebaseAdapter.methods:destroy
+ * @id DSFirebaseAdapter.methods:destroy
  * @name destroy
  * @description
  * Delete an entity from Firebase.
  *
  * ## Signature:
  * ```js
- * FirebaseAdapter.destroy(resourceConfig, id)
+ * DSFirebaseAdapter.destroy(resourceConfig, id)
  * ```
  *
  * @param {object} resourceConfig DS resource definition object:
@@ -241,7 +245,7 @@ FirebaseAdapter.prototype.updateAll = function (resourceConfig, attrs, params, o
  *
  * @returns {Promise} Promise.
  */
-FirebaseAdapter.prototype.destroy = function (resourceConfig, id) {
+DSFirebaseAdapter.prototype.destroy = function (resourceConfig, id) {
   var _this = this;
   return new P(function (resolve, reject) {
     var resourceRef = _this.getRef(resourceConfig.class);
@@ -257,14 +261,14 @@ FirebaseAdapter.prototype.destroy = function (resourceConfig, id) {
 
 /**
  * @doc method
- * @id FirebaseAdapter.methods:destroyAll
+ * @id DSFirebaseAdapter.methods:destroyAll
  * @name destroyAll
  * @description
  * Delete a collection of entities from Firebase.
  *
  * ## Signature:
  * ```js
- * FirebaseAdapter.destroyAll(resourceConfig[, params][, options])
+ * DSFirebaseAdapter.destroyAll(resourceConfig[, params][, options])
  * ```
  *
  * @param {object} resourceConfig DS resource definition object:
@@ -277,8 +281,8 @@ FirebaseAdapter.prototype.destroy = function (resourceConfig, id) {
  *
  * @returns {Promise} Promise.
  */
-FirebaseAdapter.prototype.destroyAll = function (resourceConfig, params, options) {
+DSFirebaseAdapter.prototype.destroyAll = function (resourceConfig, params, options) {
   throw new Error('Not yet implemented!');
 };
 
-module.exports = FirebaseAdapter;
+module.exports = DSFirebaseAdapter;
