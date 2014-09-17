@@ -23,7 +23,7 @@
       <div class="list-group">
         <div class="list-group-item" data-ng-repeat="user in users track by user.id">
           <div class="pull-right">
-            <button class="btn btn-sm btn-danger" data-ng-click="remove(user)">
+            <button class="btn btn-xs btn-danger" data-ng-click="remove(user)" data-ng-disabled="destroying === user.id">
               Delete
             </button>
           </div>
@@ -33,7 +33,7 @@
           <form id="user-form" name="user-form" data-ng-submit="add({ name: fCtrl.name })">
 
             <input class="form-control" type="text" data-ng-model="fCtrl.name" id="name" name="name"
-                   placeholder="Enter a name and press enter"/>
+                   placeholder="Enter a name and press enter" data-ng-disabled="creating"/>
             <input type="submit" class="hidden"/>
           </form>
         </div>

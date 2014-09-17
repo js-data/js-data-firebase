@@ -10,12 +10,22 @@
   var User = datastore.defineResource('user');
 
   angular.module('firebase-example', [])
-    .controller('firebaseCtrl', function ($scope) {
+    .controller('firebaseCtrl', function ($scope, $timeout) {
       $scope.add = function (user) {
-        User.create(user);
+        $scope.creating = true;
+        User.create(user).then(function () {
+          $scope.creating = false;
+          $timeout();
+        }, function () {
+          $scope.creating = false;
+        });
       };
       $scope.remove = function (user) {
-        User.destroy(user.id);
+        $scope.destroying = user.id;
+        User.destroy(user.id).then(function () {
+          delete $scope.destroying;
+          $timeout();
+        });
       };
       $scope.$watch(function () {
         return User.lastModified();
