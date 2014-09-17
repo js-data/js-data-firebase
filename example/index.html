@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html data-ng-app="firebase-example">
+<head lang="en">
+  <meta charset="UTF-8">
+  <title></title>
+  <link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+  <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.25/angular.min.js"></script>
+  <script src="https://cdn.firebase.com/js/client/1.0.21/firebase.js"></script>
+  <script src="https://github.com/js-data/js-data/releases/download/0.0.1/js-data-0.0.1.min.js"></script>
+  <!--<script-->
+    <!--src="https://github.com/js-data/js-data-firebase/releases/download/0.1.0/js-data-firebase-0.1.0.min.js"></script>-->
+  <script src="example.js"></script>
+</head>
+<body data-ng-controller="firebaseCtrl as fCtrl">
+<div class="container">
+  <div class="col-sm-6 col-sm-offset-3" style="margin-top: 100px">
+    <h1 class="page-header">js-data firebase example</h1>
+
+    <div class="panel panel-primary">
+      <div class="panel-heading">
+        <h3 class="panel-title">Users</h3>
+      </div>
+      <div class="list-group">
+        <div class="list-group-item" data-ng-repeat="user in users track by user.id">
+          <div class="pull-right">
+            <button class="btn btn-sm btn-danger" data-ng-click="remove(user)">
+              Delete
+            </button>
+          </div>
+          {{ user.id }}: {{ user.name }}
+        </div>
+        <div class="list-group-item">
+          <form id="user-form" name="user-form" data-ng-submit="add({ name: fCtrl.name })">
+
+            <input class="form-control" type="text" data-ng-model="fCtrl.name" id="name" name="name"
+                   placeholder="Enter a name and press enter"/>
+            <input type="submit" class="hidden"/>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

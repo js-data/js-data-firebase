@@ -1,0 +1,38 @@
+{
+  "name": "js-data-firebase",
+  "description": "Firebase adapter for js-data.",
+  "version": "0.1.0",
+  "homepage": "http://www.js-data.io/js-data-firebase",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/js-data/js-data-firebase.git"
+  },
+  "author": {
+    "name": "Jason Dobry",
+    "url": "http://www.pseudobry.com",
+    "email": "jason.dobry@gmail.com"
+  },
+  "main": "./dist/js-data-firebase.min.js",
+  "ignore": [
+    ".idea/",
+    ".*",
+    "*.iml",
+    "src/",
+    "lib/",
+    "doc/",
+    "guide/",
+    "coverage/",
+    "Gruntfile.js",
+    "node_modules/",
+    "test/",
+    "package.json",
+    "karma.conf.js",
+    "karma.start.js"
+  ],
+  "peerDependencies": {
+    "js-data": "0.0.1"
+  },
+  "devDependencies": {
+    "firebase": "~1.0.21"
+  }
+}
