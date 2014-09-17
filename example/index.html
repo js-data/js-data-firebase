@@ -12,8 +12,8 @@
   <script src="./example.js"></script>
 </head>
 <body data-ng-controller="firebaseCtrl as fCtrl">
-<div class="container">
-  <div class="col-sm-6 col-sm-offset-3" style="margin-top: 100px">
+<div class="container" style="margin-top: 100px">
+  <div class="col-sm-6">
     <h1 class="page-header">js-data firebase example</h1>
 
     <div class="panel panel-primary">
@@ -23,7 +23,8 @@
       <div class="list-group">
         <div class="list-group-item" data-ng-repeat="user in users track by user.id">
           <div class="pull-right">
-            <button class="btn btn-xs btn-danger" data-ng-click="remove(user)" data-ng-disabled="destroying === user.id">
+            <button class="btn btn-xs btn-danger" data-ng-click="remove(user)"
+                    data-ng-disabled="destroying === user.id">
               Delete
             </button>
           </div>
@@ -39,6 +40,46 @@
         </div>
       </div>
     </div>
+  </div>
+  <div>
+<pre><code>
+var firebaseAdapter = new FirebaseAdapter({
+  firebaseUrl: 'https://js-data-firebase.firebaseio.com'
+});
+
+var datastore = new JSData.DS();
+datastore.defaults.defaultAdapter = 'firebaseAdapter';
+datastore.adapters.firebaseAdapter = firebaseAdapter;
+
+var User = datastore.defineResource('user');
+
+angular.module('firebase-example', [])
+  .controller('firebaseCtrl', function ($scope, $timeout) {
+    $scope.add = function (user) {
+      $scope.creating = true;
+      User.create(user).then(function () {
+        $scope.creating = false;
+        $timeout();
+      }, function () {
+        $scope.creating = false;
+      });
+    };
+    $scope.remove = function (user) {
+      $scope.destroying = user.id;
+      User.destroy(user.id).then(function () {
+        delete $scope.destroying;
+        $timeout();
+      }, function () {
+        delete $scope.destroying;
+      });
+    };
+    $scope.$watch(function () {
+      return User.lastModified();
+    }, function () {
+      $scope.users = User.filter();
+    });
+  });
+</code></pre>
   </div>
 </div>
 </body>

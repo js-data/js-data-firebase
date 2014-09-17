@@ -25,6 +25,8 @@
         User.destroy(user.id).then(function () {
           delete $scope.destroying;
           $timeout();
+        }, function () {
+          delete $scope.destroying;
         });
       };
       $scope.$watch(function () {
