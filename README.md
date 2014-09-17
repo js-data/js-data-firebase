@@ -7,6 +7,9 @@ Firebase adapter for js-data.
 ## Documentation
 [http://www.js-data.io/js-data-firebase](http://www.js-data.io/js-data-firebase)
 
+## Demo
+[https://js-data-firebase.firebaseapp.com/](https://js-data-firebase.firebaseapp.com/)
+
 ## Project Status
 
 | Branch | Master |
