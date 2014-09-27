@@ -10,10 +10,13 @@
 
   angular.module('firebase-example', [])
     .controller('firebaseCtrl', function ($scope, $timeout) {
+      var fCtrl = this;
+
       $scope.add = function (user) {
         $scope.creating = true;
         User.create(user).then(function () {
           $scope.creating = false;
+          fCtrl.name = '';
           $timeout();
         }, function () {
           $scope.creating = false;
