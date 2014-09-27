@@ -46,3 +46,9 @@ beforeEach(function (done) {
     done();
   }).catch(done);
 });
+
+afterEach(function (done) {
+  dsFirebaseAdapter.destroyAll(User).then(function () {
+    done();
+  }).catch(done);
+});

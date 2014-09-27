@@ -75,7 +75,7 @@ module.exports = function (grunt) {
         preprocessors: {}
       },
       min: {
-        browsers: ['Firefox', 'PhantomJS'],
+        browsers: ['Firefox'],
         options: {
           files: [
             'bower_components/firebase/firebase.js',

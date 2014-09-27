@@ -12,10 +12,6 @@ describe('dsFirebaseAdapter#find', function () {
         assert.equal(user.name, 'John');
         assert.isString(user.id);
         assert.deepEqual(user, { id: id, name: 'John' });
-        return dsFirebaseAdapter.destroy(User, id);
-      })
-      .then(function (destroyedUser) {
-        assert.isFalse(!!destroyedUser);
         done();
       })
       .catch(done);

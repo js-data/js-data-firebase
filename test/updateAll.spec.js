@@ -31,13 +31,6 @@ describe('dsFirebaseAdapter#updateAll', function () {
         assert.equal(users.length, 2);
         assert.equal(users[0].age, 30);
         assert.equal(users[1].age, 30);
-        return dsFirebaseAdapter.destroyAll(User);
-      })
-      .then(function () {
-        return dsFirebaseAdapter.findAll(User);
-      })
-      .then(function (users) {
-        assert.equal(users.length, 0);
         done();
       })
       .catch(done);

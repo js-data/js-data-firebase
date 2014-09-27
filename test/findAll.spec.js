@@ -19,13 +19,6 @@ describe('dsFirebaseAdapter#findAll', function () {
       .then(function (users) {
         assert.equal(users.length, 2);
         assert.deepEqual(JSON.stringify(users, null, 2), JSON.stringify([u, u2], null, 2));
-        return dsFirebaseAdapter.destroyAll(User);
-      })
-      .then(function () {
-        return dsFirebaseAdapter.findAll(User);
-      })
-      .then(function (users) {
-        assert.equal(users.length, 0);
         done();
       })
       .catch(done);
