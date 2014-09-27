@@ -11,10 +11,10 @@ describe('dsFirebaseAdapter#create', function () {
         assert.equal(user.name, 'John');
         assert.isString(user.id);
         assert.deepEqual(user, { id: id, name: 'John' });
-        return dsFirebaseAdapter.destroy(User, user.id);
+//        return dsFirebaseAdapter.destroy(User, user.id);
       })
-      .then(function (destroyedUser) {
-        assert.isFalse(!!destroyedUser);
+      .then(function () {
+//        assert.isFalse(!!destroyedUser);
         done();
       })
       .catch(done);

@@ -1,5 +1,5 @@
 // Setup global test variables
-var dsFirebaseAdapter, User;
+var dsFirebaseAdapter, store, User;
 
 // Helper globals
 var fail = function (msg) {
@@ -32,13 +32,17 @@ var TYPES_EXCEPT_BOOLEAN = ['string', 123, 123.123, null, undefined, {}, [], fun
 var TYPES_EXCEPT_FUNCTION = ['string', 123, 123.123, null, undefined, {}, [], true, false];
 
 // Setup before each test
-beforeEach(function () {
-  User = {
-    relationFields: [],
-    class: 'User',
-    idAttribute: 'id'
-  };
+beforeEach(function (done) {
+  store = new JSData.DS();
   dsFirebaseAdapter = new DSFirebaseAdapter({
-    firebaseUrl: 'https://js-data-firebase.firebaseio.com'
+    basePath: 'https://js-data-firebase.firebaseio.com'
   });
+
+  store.registerAdapter('DSFirebaseAdapter', dsFirebaseAdapter, { default: true });
+
+  User = store.defineResource('user');
+
+  dsFirebaseAdapter.destroyAll(User).then(function () {
+    done();
+  }).catch(done);
 });
