@@ -6,9 +6,9 @@
   <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.25/angular.min.js"></script>
   <script src="https://cdn.firebase.com/js/client/1.0.21/firebase.js"></script>
-  <script src="https://github.com/js-data/js-data/releases/download/0.0.1/js-data-0.0.1.min.js"></script>
+  <script src="https://github.com/js-data/js-data/releases/download/0.0.1/js-data-0.4.0.min.js"></script>
   <script
-    src="https://github.com/js-data/js-data-firebase/releases/download/0.1.0/js-data-firebase-0.1.0.min.js"></script>
+    src="https://github.com/js-data/js-data-firebase/releases/download/0.1.0/js-data-firebase-0.4.0.min.js"></script>
   <script src="./example.js"></script>
 </head>
 <body data-ng-controller="firebaseCtrl as fCtrl">
@@ -44,12 +44,11 @@
   <div>
 <pre><code>
 var dsFirebaseAdapter = new DSFirebaseAdapter({
-  firebaseUrl: 'https://js-data-firebase.firebaseio.com'
+  basePath: 'https://js-data-firebase.firebaseio.com'
 });
 
 var datastore = new JSData.DS();
-datastore.defaults.defaultAdapter = 'dsFirebaseAdapter';
-datastore.adapters.dsFirebaseAdapter = dsFirebaseAdapter;
+datastore.registerAdapter('DSFirebaseAdapter', dsFirebaseAdapter, { default: true });
 
 var User = datastore.defineResource('user');
 

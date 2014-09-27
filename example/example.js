@@ -1,11 +1,10 @@
 (function () {
   var dsFirebaseAdapter = new DSFirebaseAdapter({
-    firebaseUrl: 'https://js-data-firebase.firebaseio.com'
+    basePath: 'https://js-data-firebase.firebaseio.com'
   });
 
   var datastore = new JSData.DS();
-  datastore.defaults.defaultAdapter = 'dsFirebaseAdapter';
-  datastore.adapters.dsFirebaseAdapter = dsFirebaseAdapter;
+  datastore.registerAdapter('DSFirebaseAdapter', dsFirebaseAdapter, { default: true });
 
   var User = datastore.defineResource('user');
 
