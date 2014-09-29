@@ -1,7 +1,7 @@
 {
   "name": "js-data-firebase",
   "description": "Firebase adapter for js-data.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "homepage": "http://www.js-data.io/js-data-firebase",
   "repository": {
     "type": "git",
@@ -9,6 +9,7 @@
   },
   "author": {
     "name": "Jason Dobry",
+    "url": "http://www.pseudobry.com",
     "email": "jason.dobry@gmail.com"
   },
   "licenses": [
@@ -53,10 +54,11 @@
     "test": "grunt test"
   },
   "peerDependencies": {
-    "js-data": "~0.3.x"
+    "js-data": "~0.4.x",
+    "firebase": "~1.0.x"
   },
   "dependencies": {
-    "es6-promise": "1.0.0",
-    "mout": "0.10.0"
+    "mout": "0.10.0",
+    "firebase": "~1.0.x"
   }
 }

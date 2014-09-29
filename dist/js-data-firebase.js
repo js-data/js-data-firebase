@@ -1,7 +1,7 @@
 /**
 * @author Jason Dobry <jason.dobry@gmail.com>
 * @file js-data-firebase.js
-* @version 0.4.0 - Homepage <http://www.js-data.iojs-data-firebase/>
+* @version 0.4.1 - Homepage <http://www.js-data.iojs-data-firebase/>
 * @copyright (c) 2014 Jason Dobry 
 * @license MIT <https://github.com/js-data/js-data-firebase/blob/master/LICENSE>
 *
@@ -172,7 +172,7 @@ var dsFirebaseAdapterPrototype = DSFirebaseAdapter.prototype;
 
 dsFirebaseAdapterPrototype.getRef = function (resourceConfig, options) {
   options = options || {};
-  return new Firebase(makePath(options.basePath || this.defaults.basePath || resourceConfig.basePath, resourceConfig.class));
+  return new Firebase(makePath(options.basePath || this.defaults.basePath || resourceConfig.basePath, options.endpoint || resourceConfig.endpoint));
 };
 
 dsFirebaseAdapterPrototype.find = function (resourceConfig, id, options) {

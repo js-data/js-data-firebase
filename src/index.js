@@ -31,7 +31,7 @@ var dsFirebaseAdapterPrototype = DSFirebaseAdapter.prototype;
 
 dsFirebaseAdapterPrototype.getRef = function (resourceConfig, options) {
   options = options || {};
-  return new Firebase(makePath(options.basePath || this.defaults.basePath || resourceConfig.basePath, resourceConfig.class));
+  return new Firebase(makePath(options.basePath || this.defaults.basePath || resourceConfig.basePath, options.endpoint || resourceConfig.endpoint));
 };
 
 dsFirebaseAdapterPrototype.find = function (resourceConfig, id, options) {

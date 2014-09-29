@@ -24,6 +24,8 @@ Firebase adapter for [js-data](http://www.js-data.io/js-data).
 ## Quick Start
 `bower install --save js-data js-data-firebase` or `npm install --save js-data js-data-firebase`.
 
+Load `firebase.js`.
+
 Load `js-data-firebase.js` after `js-data.js`.
 
 ```js

@@ -1,7 +1,7 @@
 {
   "name": "js-data-firebase",
   "description": "Firebase adapter for js-data.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "homepage": "http://www.js-data.io/js-data-firebase",
   "repository": {
     "type": "git",
@@ -29,11 +29,12 @@
     "karma.conf.js",
     "karma.start.js"
   ],
-  "peerDependencies": {
-    "js-data": "~0.4.x"
+  "dependencies": {
+    "js-data": "~0.4.x",
+    "firebase": "~1.0.x"
   },
   "devDependencies": {
-    "firebase": "~1.0.21",
+    "firebase": "~1.0.x",
     "js-data": "~0.4.x"
   }
 }

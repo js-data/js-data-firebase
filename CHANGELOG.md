@@ -1,3 +1,8 @@
+##### 0.4.1 - 28 September 2014
+
+###### Backwards compatible bugfixes
+- Corrected to use `resourceConfig.endpoint` rather than `resourceConfig.class`
+
 ##### 0.4.0 - 27 September 2014
 
 ###### Breaking API changes
