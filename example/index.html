@@ -8,7 +8,7 @@
   <script src="https://cdn.firebase.com/js/client/1.0.21/firebase.js"></script>
   <script src="https://github.com/js-data/js-data/releases/download/0.4.0/js-data-0.4.0.min.js"></script>
   <script
-    src="https://github.com/js-data/js-data-firebase/releases/download/0.4.0/js-data-firebase-0.4.0.min.js"></script>
+    src="https://github.com/js-data/js-data-firebase/releases/download/0.4.1/js-data-firebase-0.4.1.min.js"></script>
   <script src="./example.js"></script>
 </head>
 <body data-ng-controller="firebaseCtrl as fCtrl">
@@ -43,14 +43,14 @@
   </div>
   <div>
 <pre><code>
-var dsFirebaseAdapter = new DSFirebaseAdapter({
+var adapter = new DSFirebaseAdapter({
   basePath: 'https://js-data-firebase.firebaseio.com'
 });
 
-var datastore = new JSData.DS();
-datastore.registerAdapter('DSFirebaseAdapter', dsFirebaseAdapter, { default: true });
+var store = new JSData.DS();
+store.registerAdapter('firebase', adapter, { default: true });
 
-var User = datastore.defineResource('user');
+var User = store.defineResource('user');
 
 angular.module('firebase-example', [])
   .controller('firebaseCtrl', function ($scope, $timeout) {

@@ -1,12 +1,12 @@
 (function () {
-  var dsFirebaseAdapter = new DSFirebaseAdapter({
+  var adapter = new DSFirebaseAdapter({
     basePath: 'https://js-data-firebase.firebaseio.com'
   });
 
-  var datastore = new JSData.DS();
-  datastore.registerAdapter('DSFirebaseAdapter', dsFirebaseAdapter, { default: true });
+  var store = new JSData.DS();
+  store.registerAdapter('firebase', adapter, { default: true });
 
-  var User = datastore.defineResource('user');
+  var User = store.defineResource('user');
 
   angular.module('firebase-example', [])
     .controller('firebaseCtrl', function ($scope, $timeout) {
