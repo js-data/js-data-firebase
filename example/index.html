@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title></title>
   <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+  <link href="./example.css" rel="stylesheet">
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.25/angular.min.js"></script>
   <script src="https://cdn.firebase.com/js/client/1.0.21/firebase.js"></script>
   <script src="https://github.com/js-data/js-data/releases/download/0.4.1/js-data-0.4.1.min.js"></script>
@@ -12,6 +13,18 @@
   <script src="./example.js"></script>
 </head>
 <body data-ng-controller="firebaseCtrl as fCtrl">
+<div class="example-masthead">
+  <div class="container">
+    <nav class="example-nav">
+      <a class="example-nav-item" href="http://www.js-data.io">js-data.io</a>
+      <a class="example-nav-item" href="https://github.com/js-data/js-data/wiki/DSFirebaseAdapter">API Documentation</a>
+      <a class="example-nav-item" href="https://github.com/js-data/js-data-firebase">GitHub</a>
+      <a class="example-nav-item" href="https://groups.io/org/groupsio/jsdata">Mailing List</a>
+      <a class="example-nav-item" href="https://github.com/js-data/js-data-firebase/issues">Issues</a>
+      <a class="example-nav-item active" href="#">Firebase Adapter Demo</a>
+    </nav>
+  </div>
+</div>
 <div class="container" style="margin-top: 100px">
   <div class="col-sm-6">
     <h1 class="page-header">js-data firebase example</h1>
@@ -23,8 +36,7 @@
       <div class="list-group">
         <div class="list-group-item" data-ng-repeat="user in users track by user.id">
           <div class="pull-right">
-            <button class="btn btn-xs btn-danger" data-ng-click="remove(user)"
-                    data-ng-disabled="destroying === user.id">
+            <button class="btn btn-xs btn-danger" data-ng-click="remove(user)">
               Delete
             </button>
           </div>
@@ -34,7 +46,7 @@
           <form id="user-form" name="user-form" data-ng-submit="add({ name: fCtrl.name })">
 
             <input class="form-control" type="text" data-ng-model="fCtrl.name" id="name" name="name"
-                   placeholder="Enter a name and press enter" data-ng-disabled="creating"/>
+                   placeholder="Enter a name and press enter" />
             <input type="submit" class="hidden"/>
           </form>
         </div>
@@ -46,9 +58,11 @@
 angular.module('firebase-example', [])
   .factory('store', function () {
     var store = new JSData.DS();
-    store.registerAdapter('http', new DSHttpAdapter({
+
+    store.registerAdapter('firebase', new DSFirebaseAdapter({
       basePath: 'https://js-data-firebase.firebaseio.com'
     }, { default: true });
+
     return store;
   })
   .factory('User', function (store) {
@@ -56,35 +70,47 @@ angular.module('firebase-example', [])
   })
   .controller('firebaseCtrl', function ($scope, $timeout, User) {
     var fCtrl = this;
-    User.findAll().then(function () {
+
+    User.findAll().then(function (users) {
+      $scope.users = users;
       $scope.$apply();
     });
 
     $scope.add = function (user) {
-      $scope.creating = true;
       User.create(user).then(function () {
-        $scope.creating = false;
         fCtrl.name = '';
-        $timeout();
-      }, function () {
-        $scope.creating = false;
+        $scope.$apply();
       });
     };
+
     $scope.remove = function (user) {
-      $scope.destroying = user.id;
       User.destroy(user.id).then(function () {
-        delete $scope.destroying;
-        $timeout();
-      }, function () {
-        delete $scope.destroying;
+        $scope.$apply();
       });
     };
-    $scope.$watch(function () {
-      return User.lastModified();
-    }, function () {
-      $scope.users = User.filter();
-    });
   });
+</code></pre>
+  </div>
+  <div>
+<pre><code data-ng-non-bindable>
+&lt;div class="list-group"&gt;
+  &lt;div class="list-group-item" data-ng-repeat="user in users track by user.id"&gt;
+    &lt;div class="pull-right"&gt;
+      &lt;button class="btn btn-xs btn-danger" data-ng-click="remove(user)"&gt;
+        Delete
+      &lt;/button&gt;
+    &lt;/div&gt;
+    {{ user.id }}: {{ user.name }}
+  &lt;/div&gt;
+  &lt;div class="list-group-item"&gt;
+    &lt;form id="user-form" name="user-form" data-ng-submit="add({ name: fCtrl.name })"&gt;
+
+      &lt;input class="form-control" type="text" data-ng-model="fCtrl.name" id="name" name="name"
+             placeholder="Enter a name and press enter"/&gt;
+      &lt;input type="submit" class="hidden"/&gt;
+    &lt;/form&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
 </code></pre>
   </div>
 </div>
