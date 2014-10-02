@@ -1,11 +1,11 @@
 /**
 * @author Jason Dobry <jason.dobry@gmail.com>
 * @file js-data-firebase.js
-* @version 0.4.1 - Homepage <http://www.js-data.iojs-data-firebase/>
+* @version 0.4.2 - Homepage <http://www.js-data.iojs-data-firebase/>
 * @copyright (c) 2014 Jason Dobry 
 * @license MIT <https://github.com/js-data/js-data-firebase/blob/master/LICENSE>
 *
-* @overview My Adapter.
+* @overview Firebase adapter for js-data.
 */
 !function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.DSFirebaseAdapter=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var hasOwn = require('./hasOwn');
@@ -140,12 +140,25 @@ var forOwn = require('./forOwn');
 
 },{"./forOwn":2}],5:[function(require,module,exports){
 var JSData, Firebase;
-if (!window && typeof module !== 'undefined' && module.exports) {
+
+try {
   JSData = require('js-data');
   Firebase = require('firebase');
-} else {
-  JSData = window.JSData;
-  Firebase = window.Firebase;
+} catch (e) {
+}
+
+if (!JSData) {
+  try {
+    JSData = window.JSData;
+    Firebase = window.Firebase;
+  } catch (e) {
+  }
+}
+
+if (!JSData) {
+  throw new Error('js-data must be loaded!');
+} else if (!Firebase) {
+  throw new Error('firebase must be loaded!');
 }
 
 var emptyStore = new JSData.DS();

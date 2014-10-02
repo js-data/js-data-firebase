@@ -1,10 +1,23 @@
 var JSData, Firebase;
-if (!window && typeof module !== 'undefined' && module.exports) {
+
+try {
   JSData = require('js-data');
   Firebase = require('firebase');
-} else {
-  JSData = window.JSData;
-  Firebase = window.Firebase;
+} catch (e) {
+}
+
+if (!JSData) {
+  try {
+    JSData = window.JSData;
+    Firebase = window.Firebase;
+  } catch (e) {
+  }
+}
+
+if (!JSData) {
+  throw new Error('js-data must be loaded!');
+} else if (!Firebase) {
+  throw new Error('firebase must be loaded!');
 }
 
 var emptyStore = new JSData.DS();

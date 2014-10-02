@@ -1,7 +1,7 @@
 {
   "name": "js-data-firebase",
   "description": "Firebase adapter for js-data.",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "homepage": "http://www.js-data.io/js-data-firebase",
   "repository": {
     "type": "git",
@@ -26,6 +26,7 @@
     "adapter",
     "firebase"
   ],
+  "main": "./src/index.js",
   "devDependencies": {
     "grunt": "0.4.5",
     "grunt-browserify": "3.0.1",
@@ -53,12 +54,9 @@
   "scripts": {
     "test": "grunt test"
   },
-  "peerDependencies": {
-    "js-data": "~0.4.x",
-    "firebase": "~1.0.x"
-  },
   "dependencies": {
     "mout": "0.10.0",
+    "js-data": "~0.4.x",
     "firebase": "~1.0.x"
   }
 }

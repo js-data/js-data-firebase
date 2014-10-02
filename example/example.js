@@ -1,16 +1,20 @@
 (function () {
-  var adapter = new DSFirebaseAdapter({
-    basePath: 'https://js-data-firebase.firebaseio.com'
-  });
-
-  var store = new JSData.DS();
-  store.registerAdapter('firebase', adapter, { default: true });
-
-  var User = store.defineResource('user');
-
   angular.module('firebase-example', [])
-    .controller('firebaseCtrl', function ($scope, $timeout) {
+    .factory('store', function () {
+      var store = new JSData.DS();
+      store.registerAdapter('firebase', new DSFirebaseAdapter({
+        basePath: 'https://js-data-firebase.firebaseio.com'
+      }), { default: true });
+      return store;
+    })
+    .factory('User', function (store) {
+      return store.defineResource('user');
+    })
+    .controller('firebaseCtrl', function ($scope, $timeout, User) {
       var fCtrl = this;
+      User.findAll().then(function () {
+        $scope.$apply();
+      });
 
       $scope.add = function (user) {
         $scope.creating = true;

@@ -1,3 +1,8 @@
+##### 0.4.2 - 01 October 2014
+
+###### Other
+- Improved checking for dependencies
+
 ##### 0.4.1 - 28 September 2014
 
 ###### Backwards compatible bugfixes

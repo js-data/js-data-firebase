@@ -42,7 +42,7 @@ module.exports = function (grunt) {
             '* @copyright (c) 2014 Jason Dobry\n' +
             '* @license MIT <https://github.com/js-data/js-data-firebase/blob/master/LICENSE>\n' +
             '*\n' +
-            '* @overview My Adapter.\n' +
+            '* @overview Firebase adapter for js-data.\n' +
             '*/\n'
         },
         files: {
@@ -115,7 +115,7 @@ module.exports = function (grunt) {
       '* @copyright (c) 2014 Jason Dobry \n' +
       '* @license MIT <https://github.com/js-data/js-data-firebase/blob/master/LICENSE>\n' +
       '*\n' +
-      '* @overview My Adapter.\n' +
+      '* @overview Firebase adapter for js-data.\n' +
       '*/\n';
 
     file = banner + file;
