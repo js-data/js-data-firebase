@@ -28,17 +28,22 @@
         </ul>
       </header>
       <section>
-        <p><img src="https://raw.githubusercontent.com/js-data/js-data/prototype/js-data.png" alt="js-data logo" title="js-data" align="right" width="64" height="64"></p>
+        <p><img src="https://raw.githubusercontent.com/js-data/js-data/master/js-data.png" alt="js-data logo" title="js-data" align="right" width="64" height="64"></p>
 
 <h2>
 <a name="js-data-firebase" class="anchor" href="#js-data-firebase"><span class="octicon octicon-link"></span></a>js-data-firebase</h2>
 
-<p>Firebase adapter for js-data.</p>
+<p>Firebase adapter for <a href="http://www.js-data.io/js-data">js-data</a>.</p>
 
 <h2>
-<a name="documentation" class="anchor" href="#documentation"><span class="octicon octicon-link"></span></a>Documentation</h2>
+<a name="api-documentation" class="anchor" href="#api-documentation"><span class="octicon octicon-link"></span></a>API Documentation</h2>
 
-<p><a href="http://www.js-data.io/js-data-firebase">http://www.js-data.io/js-data-firebase</a></p>
+<p><a href="https://github.com/js-data/js-data/wiki/DSFirebaseAdapter">DSFirebaseAdapter</a></p>
+
+<h2>
+<a name="demo" class="anchor" href="#demo"><span class="octicon octicon-link"></span></a>Demo</h2>
+
+<p><a href="https://js-data-firebase.firebaseapp.com/">https://js-data-firebase.firebaseapp.com/</a></p>
 
 <h2>
 <a name="project-status" class="anchor" href="#project-status"><span class="octicon octicon-link"></span></a>Project Status</h2>
@@ -77,7 +82,22 @@
 </table><h2>
 <a name="quick-start" class="anchor" href="#quick-start"><span class="octicon octicon-link"></span></a>Quick Start</h2>
 
-<p><code>bower install --save js-data-firebase</code> or <code>npm install --save js-data-firebase</code>.</p>
+<p><code>bower install --save js-data js-data-firebase</code> or <code>npm install --save js-data js-data-firebase</code>.</p>
+
+<p>Load <code>firebase.js</code>.</p>
+
+<p>Load <code>js-data-firebase.js</code> after <code>js-data.js</code>.</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">adapter</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">DSFirebaseAdapter</span><span class="p">({</span>
+  <span class="nx">basePath</span><span class="o">:</span> <span class="s1">'https://my-app.firebase.io'</span>
+<span class="p">});</span>
+
+<span class="kd">var</span> <span class="nx">store</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">JSData</span><span class="p">.</span><span class="nx">DS</span><span class="p">();</span>
+
+<span class="nx">store</span><span class="p">.</span><span class="nx">registerAdapter</span><span class="p">(</span><span class="s1">'firebase'</span><span class="p">,</span> <span class="nx">adapter</span><span class="p">,</span> <span class="p">{</span> <span class="k">default</span><span class="o">:</span> <span class="kc">true</span> <span class="p">});</span>
+
+<span class="c1">// "store" will now use the firebase adapter for all async operations</span>
+</pre></div>
 
 <h2>
 <a name="changelog" class="anchor" href="#changelog"><span class="octicon octicon-link"></span></a>Changelog</h2>
@@ -89,7 +109,7 @@
 
 <ul>
 <li>
-<a href="https://groups.google.com/forum/?fromgroups#!forum/js-data-project">Mailing List</a> - Ask your questions!</li>
+<a href="https://groups.io/org/groupsio/jsdata">Mailing List</a> - Ask your questions!</li>
 <li>
 <a href="https://github.com/js-data/js-data-firebase/issues">Issues</a> - Found a bug? Feature request? Submit an issue!</li>
 <li>
@@ -98,11 +118,11 @@
 </ul><h2>
 <a name="contributing" class="anchor" href="#contributing"><span class="octicon octicon-link"></span></a>Contributing</h2>
 
-<p>First, feel free to contact me with questions. <a href="https://groups.google.com/forum/?fromgroups#!forum/js-data-project">Mailing List</a>. <a href="https://github.com/js-data/js-data-firebase/issues">Issues</a>.</p>
+<p>First, feel free to contact me with questions. <a href="https://groups.io/org/groupsio/jsdata">Mailing List</a>. <a href="https://github.com/js-data/js-data-firebase/issues">Issues</a>.</p>
 
 <ol>
 <li>Contribute to the issue that is the reason you'll be developing in the first place</li>
-<li>Fork js-data</li>
+<li>Fork js-data-firebase</li>
 <li><code>git clone https://github.com/&lt;you&gt;/js-data-firebase.git</code></li>
 <li><code>cd js-data-firebase; npm install; bower install;</code></li>
 <li>
@@ -113,24 +133,27 @@
 </ol><h2>
 <a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h2>
 
+<p>The MIT License (MIT)</p>
+
 <p>Copyright (c) 2014 Jason Dobry</p>
 
-<p>Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:</p>
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:</p>
 
 <p>The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.</p>
 
 <p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</p>
       </section>
       <footer>
         <p>This project is maintained by <a href="https://github.com/js-data">js-data</a></p>
