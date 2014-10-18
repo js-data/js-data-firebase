@@ -1,3 +1,8 @@
+##### 0.4.3 - 18 October 2014
+
+###### Backwards compatible bug fixes
+- #1 - Create doesn't play well with idAttribute that isn't automatically assigned
+
 ##### 0.4.2 - 01 October 2014
 
 ###### Other

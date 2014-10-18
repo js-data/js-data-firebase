@@ -2,10 +2,10 @@
 
 ## js-data-firebase
 
-Firebase adapter for [js-data](http://www.js-data.io/js-data).
+Firebase adapter for [js-data](http://www.js-data.io/).
 
 ## API Documentation
-[DSFirebaseAdapter](https://github.com/js-data/js-data/wiki/DSFirebaseAdapter)
+[DSFirebaseAdapter](http://www.js-data.io/docs/dsfirebaseadapter)
 
 ## Demo
 [https://js-data-firebase.firebaseapp.com/](https://js-data-firebase.firebaseapp.com/)

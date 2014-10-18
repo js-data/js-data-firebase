@@ -69,29 +69,34 @@ dsFirebaseAdapterPrototype.findAll = function (resourceConfig, params, options) 
 
 dsFirebaseAdapterPrototype.create = function (resourceConfig, attrs, options) {
   var _this = this;
-  return new P(function (resolve, reject) {
-    var resourceRef = _this.getRef(resourceConfig, options);
-    var itemRef = resourceRef.push(attrs, function (err) {
-      if (err) {
-        return reject(err);
-      } else {
-        var id = itemRef.toString().replace(resourceRef.toString(), '');
-        itemRef.child(resourceConfig.idAttribute).set(id, function (err) {
-          if (err) {
-            reject(err);
-          } else {
-            itemRef.once('value', function (dataSnapshot) {
-              try {
-                resolve(dataSnapshot.val());
-              } catch (err) {
-                reject(err);
-              }
-            }, reject, _this);
-          }
-        });
-      }
+  var id = attrs[resourceConfig.idAttribute];
+  if (DSUtils.isString(id) || DSUtils.isNumber(id)) {
+    return _this.update(resourceConfig, id, attrs, options);
+  } else {
+    return new P(function (resolve, reject) {
+      var resourceRef = _this.getRef(resourceConfig, options);
+      var itemRef = resourceRef.push(attrs, function (err) {
+        if (err) {
+          return reject(err);
+        } else {
+          var id = itemRef.toString().replace(resourceRef.toString(), '');
+          itemRef.child(resourceConfig.idAttribute).set(id, function (err) {
+            if (err) {
+              reject(err);
+            } else {
+              itemRef.once('value', function (dataSnapshot) {
+                try {
+                  resolve(dataSnapshot.val());
+                } catch (err) {
+                  reject(err);
+                }
+              }, reject, _this);
+            }
+          });
+        }
+      });
     });
-  });
+  }
 };
 
 dsFirebaseAdapterPrototype.update = function (resourceConfig, id, attrs, options) {
@@ -101,7 +106,7 @@ dsFirebaseAdapterPrototype.update = function (resourceConfig, id, attrs, options
     var itemRef = resourceRef.child(id);
     itemRef.once('value', function (dataSnapshot) {
       try {
-        var item = dataSnapshot.val();
+        var item = dataSnapshot.val() || {};
         var fields, removed, i;
         if (resourceConfig.relations) {
           fields = resourceConfig.relationFields;
