@@ -1,3 +1,7 @@
+##### 1.0.0-alpha.1 - 01 November 2014
+
+Stable Version 1.0.0-alpha.1
+
 ##### 0.4.3 - 18 October 2014
 
 ###### Backwards compatible bug fixes
