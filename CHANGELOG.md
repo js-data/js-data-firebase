@@ -1,3 +1,10 @@
+##### 1.0.0-beta.1 - 10 January 2015
+
+Now in beta.
+
+###### Backwards compatible API changes
+- #2 - Authentication
+
 ##### 1.0.0-alpha.1 - 01 November 2014
 
 Stable Version 1.0.0-alpha.1

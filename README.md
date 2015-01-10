@@ -1,6 +1,6 @@
 <img src="https://raw.githubusercontent.com/js-data/js-data/master/js-data.png" alt="js-data logo" title="js-data" align="right" width="64" height="64" />
 
-## js-data-firebase
+## js-data-firebase [![Bower version](https://badge.fury.io/bo/js-data-firebase.png)](http://badge.fury.io/bo/js-data-firebase) [![NPM version](https://badge.fury.io/js/js-data-firebase.png)](http://badge.fury.io/js/js-data-firebase)
 
 Firebase adapter for [js-data](http://www.js-data.io/).
 

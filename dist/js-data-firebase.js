@@ -1,7 +1,7 @@
 /**
 * @author Jason Dobry <jason.dobry@gmail.com>
 * @file js-data-firebase.js
-* @version 1.0.0-alpha.1 - Homepage <http://www.js-data.iojs-data-firebase/>
+* @version 1.0.0-beta.1 - Homepage <http://www.js-data.iojs-data-firebase/>
 * @copyright (c) 2014 Jason Dobry 
 * @license MIT <https://github.com/js-data/js-data-firebase/blob/master/LICENSE>
 *
@@ -179,20 +179,20 @@ function DSFirebaseAdapter(options) {
   options = options || {};
   this.defaults = new Defaults();
   deepMixIn(this.defaults, options);
+  this.ref = new Firebase(options.basePath || this.defaults.basePath);
 }
 
 var dsFirebaseAdapterPrototype = DSFirebaseAdapter.prototype;
 
 dsFirebaseAdapterPrototype.getRef = function (resourceConfig, options) {
   options = options || {};
-  return new Firebase(makePath(options.basePath || this.defaults.basePath || resourceConfig.basePath, options.endpoint || resourceConfig.endpoint));
+  return this.ref.child(options.endpoint || resourceConfig.endpoint);
 };
 
 dsFirebaseAdapterPrototype.find = function (resourceConfig, id, options) {
   var _this = this;
   return new P(function (resolve, reject) {
-    var resourceRef = _this.getRef(resourceConfig, options);
-    resourceRef.child(id).once('value', function (dataSnapshot) {
+    return _this.getRef(resourceConfig, options).child(id).once('value', function (dataSnapshot) {
       resolve(dataSnapshot.val());
     }, reject, _this);
   });
@@ -201,8 +201,7 @@ dsFirebaseAdapterPrototype.find = function (resourceConfig, id, options) {
 dsFirebaseAdapterPrototype.findAll = function (resourceConfig, params, options) {
   var _this = this;
   return new P(function (resolve, reject) {
-    var resourceRef = _this.getRef(resourceConfig, options);
-    resourceRef.once('value', function (dataSnapshot) {
+    return _this.getRef(resourceConfig, options).once('value', function (dataSnapshot) {
       resolve(filter.call(emptyStore, values(dataSnapshot.val()), resourceConfig.name, params, options));
     }, reject, _this);
   });
@@ -243,8 +242,7 @@ dsFirebaseAdapterPrototype.create = function (resourceConfig, attrs, options) {
 dsFirebaseAdapterPrototype.update = function (resourceConfig, id, attrs, options) {
   var _this = this;
   return new P(function (resolve, reject) {
-    var resourceRef = _this.getRef(resourceConfig, options);
-    var itemRef = resourceRef.child(id);
+    var itemRef = _this.getRef(resourceConfig, options).child(id);
     itemRef.once('value', function (dataSnapshot) {
       try {
         var item = dataSnapshot.val() || {};
@@ -292,8 +290,7 @@ dsFirebaseAdapterPrototype.updateAll = function (resourceConfig, attrs, params, 
 dsFirebaseAdapterPrototype.destroy = function (resourceConfig, id, options) {
   var _this = this;
   return new P(function (resolve, reject) {
-    var resourceRef = _this.getRef(resourceConfig, options);
-    resourceRef.child(id).remove(function (err) {
+    _this.getRef(resourceConfig, options).child(id).remove(function (err) {
       if (err) {
         reject(err);
       } else {

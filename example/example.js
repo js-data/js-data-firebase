@@ -15,21 +15,26 @@
     .controller('firebaseCtrl', function ($scope, User) {
       var fCtrl = this;
 
-      User.findAll().then(function (users) {
-        $scope.users = users;
-        $scope.$apply();
+      User.findAll().then(function () {
+        $scope.$apply(function () {
+          $scope.users = User.filter();
+        });
       });
 
       $scope.add = function (user) {
         User.create(user).then(function () {
           fCtrl.name = '';
-          $scope.$apply();
+          $scope.$apply(function () {
+            $scope.users = User.filter();
+          });
         });
       };
 
       $scope.remove = function (user) {
         User.destroy(user.id).then(function () {
-          $scope.$apply();
+          $scope.$apply(function () {
+            $scope.users = User.filter();
+          });
         });
       };
     });
