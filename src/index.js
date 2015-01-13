@@ -23,7 +23,6 @@ if (!JSData) {
 var emptyStore = new JSData.DS();
 var DSUtils = JSData.DSUtils;
 var deepMixIn = DSUtils.deepMixIn;
-var makePath = DSUtils.makePath;
 var filter = emptyStore.defaults.defaultFilter;
 var values = require('mout/object/values');
 var P = DSUtils.Promise;
