@@ -66,7 +66,7 @@ First, feel free to contact me with questions. [Mailing List](https://groups.io/
 
 The MIT License (MIT)
 
-Copyright (c) 2014 Jason Dobry
+Copyright (c) 2014-2015 Jason Dobry
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

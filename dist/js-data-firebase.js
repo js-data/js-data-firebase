@@ -1,7 +1,7 @@
 /**
 * @author Jason Dobry <jason.dobry@gmail.com>
 * @file js-data-firebase.js
-* @version 1.0.0-beta.1 - Homepage <http://www.js-data.iojs-data-firebase/>
+* @version 1.0.0 - Homepage <http://www.js-data.iojs-data-firebase/>
 * @copyright (c) 2014 Jason Dobry 
 * @license MIT <https://github.com/js-data/js-data-firebase/blob/master/LICENSE>
 *
@@ -164,7 +164,6 @@ if (!JSData) {
 var emptyStore = new JSData.DS();
 var DSUtils = JSData.DSUtils;
 var deepMixIn = DSUtils.deepMixIn;
-var makePath = DSUtils.makePath;
 var filter = emptyStore.defaults.defaultFilter;
 var values = require('mout/object/values');
 var P = DSUtils.Promise;
