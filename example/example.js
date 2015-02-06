@@ -1,5 +1,5 @@
 (function () {
-  angular.module('firebase-example', [])
+  angular.module('firebase-example', ['js-data'])
     .factory('store', function () {
       var store = new JSData.DS();
 
@@ -16,26 +16,19 @@
       var fCtrl = this;
 
       User.findAll().then(function () {
-        $scope.$apply(function () {
-          $scope.users = User.filter();
-        });
+        $scope.users = User.filter();
       });
 
+      User.bindAll({}, $scope, 'users');
+
       $scope.add = function (user) {
-        User.create(user).then(function () {
+        return User.create(user).then(function () {
           fCtrl.name = '';
-          $scope.$apply(function () {
-            $scope.users = User.filter();
-          });
         });
       };
 
       $scope.remove = function (user) {
-        User.destroy(user.id).then(function () {
-          $scope.$apply(function () {
-            $scope.users = User.filter();
-          });
-        });
+        return User.destroy(user.id);
       };
     });
 })();
