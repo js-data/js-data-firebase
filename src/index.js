@@ -51,7 +51,12 @@ dsFirebaseAdapterPrototype.find = function (resourceConfig, id, options) {
   var _this = this;
   return new P(function (resolve, reject) {
     return _this.getRef(resourceConfig, options).child(id).once('value', function (dataSnapshot) {
-      resolve(dataSnapshot.val());
+      var item = dataSnapshot.val();
+      if (!item) {
+        reject(new Error('Not Found!'));
+      } else {
+        resolve(item);
+      }
     }, reject, _this);
   });
 };

@@ -1,7 +1,7 @@
 describe('dsFirebaseAdapter#updateAll', function () {
-  it('should update all users in firebase', function (done) {
+  it('should update all users in firebase', function () {
     var id, id2, u, u2;
-    dsFirebaseAdapter.create(User, { name: 'John' })
+    return dsFirebaseAdapter.create(User, { name: 'John' })
       .then(function (user) {
         u = user;
         id = user.id;
@@ -31,8 +31,6 @@ describe('dsFirebaseAdapter#updateAll', function () {
         assert.equal(users.length, 2);
         assert.equal(users[0].age, 30);
         assert.equal(users[1].age, 30);
-        done();
-      })
-      .catch(done);
+      });
   });
 });

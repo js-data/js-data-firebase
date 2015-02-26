@@ -1,7 +1,7 @@
 describe('dsFirebaseAdapter#find', function () {
-  it('should find a user in firebase', function (done) {
+  it('should find a user in firebase', function () {
     var id;
-    dsFirebaseAdapter.create(User, { name: 'John' })
+    return dsFirebaseAdapter.create(User, { name: 'John' })
       .then(function (user) {
         id = user.id;
         assert.equal(user.name, 'John');
@@ -12,8 +12,6 @@ describe('dsFirebaseAdapter#find', function () {
         assert.equal(user.name, 'John');
         assert.isString(user.id);
         assert.deepEqual(user, { id: id, name: 'John' });
-        done();
-      })
-      .catch(done);
+      });
   });
 });

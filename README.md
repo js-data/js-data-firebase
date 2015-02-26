@@ -15,7 +15,7 @@ Firebase adapter for [js-data](http://www.js-data.io/).
 | Branch | Master |
 | ------ | ------ |
 | Bower | [![Bower version](https://badge.fury.io/bo/js-data-firebase.png)](http://badge.fury.io/bo/js-data-firebase) |
-| NPM | [![NPM version](https://badge.fury.io/js/js-data-firebase.png)](http://badge.fury.io/js/js-data-firebase) |
+| NPM | [![NPM](https://nodei.co/npm/js-data-firebase.png?downloads=true&stars=true)](https://nodei.co/npm/js-data-firebase/) |
 | Build Status | [![Build Status](https://travis-ci.org/js-data/js-data-firebase.png?branch=master)](https://travis-ci.org/js-data/js-data-firebase) |
 | Code Climate | [![Code Climate](https://codeclimate.com/github/js-data/js-data-firebase.png)](https://codeclimate.com/github/js-data/js-data-firebase) |
 | Dependency Status | [![Dependency Status](https://gemnasium.com/js-data/js-data-firebase.png)](https://gemnasium.com/js-data/js-data-firebase) |

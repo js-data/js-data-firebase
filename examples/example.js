@@ -1,16 +1,15 @@
 (function () {
   angular.module('firebase-example', ['js-data'])
-    .factory('store', function () {
-      var store = new JSData.DS();
-
-      store.registerAdapter('firebase', new DSFirebaseAdapter({
-        basePath: 'https://js-data-firebase.firebaseio.com'
-      }), { default: true });
-
-      return store;
+    .config(function (DSFirebaseAdapterProvider) {
+      DSFirebaseAdapterProvider.defaults.basePath = 'https://js-data-firebase.firebaseio.com';
     })
-    .factory('User', function (store) {
-      return store.defineResource('user');
+    .run(function (DS, DSFirebaseAdapter) {
+      // js-data-angular created a new store automatically and registered it as DS.
+      // The firebase adapter was already registered, but we want to make it the default.
+      DS.registerAdapter('firebase', DSFirebaseAdapter, { default: true });
+    })
+    .factory('User', function (DS) {
+      return DS.defineResource('user');
     })
     .controller('firebaseCtrl', function ($scope, User) {
       var fCtrl = this;

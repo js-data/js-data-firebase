@@ -1,7 +1,7 @@
 describe('dsFirebaseAdapter#destroyAll', function () {
-  it('should destroy all users in firebase', function (done) {
+  it('should destroy all users in firebase', function () {
     var id, id2, u, u2;
-    dsFirebaseAdapter.create(User, { name: 'John' })
+    return dsFirebaseAdapter.create(User, { name: 'John' })
       .then(function (user) {
         u = user;
         id = user.id;
@@ -26,8 +26,6 @@ describe('dsFirebaseAdapter#destroyAll', function () {
       })
       .then(function (users) {
         assert.equal(users.length, 0);
-        done();
-      })
-      .catch(done);
+      });
   });
 });

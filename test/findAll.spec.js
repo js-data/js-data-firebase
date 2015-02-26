@@ -1,7 +1,7 @@
 describe('dsFirebaseAdapter#findAll', function () {
-  it('should find all the users in firebase', function (done) {
+  it('should find all the users in firebase', function () {
     var id, id2, u, u2;
-    dsFirebaseAdapter.create(User, { name: 'John' })
+    return dsFirebaseAdapter.create(User, { name: 'John' })
       .then(function (user) {
         u = user;
         id = user.id;
@@ -19,8 +19,6 @@ describe('dsFirebaseAdapter#findAll', function () {
       .then(function (users) {
         assert.equal(users.length, 2);
         assert.deepEqual(JSON.stringify(users, null, 2), JSON.stringify([u, u2], null, 2));
-        done();
-      })
-      .catch(done);
+      });
   });
 });

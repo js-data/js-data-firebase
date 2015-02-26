@@ -1,7 +1,7 @@
 describe('dsFirebaseAdapter#destroy', function () {
-  it('should destroy a user from firebase', function (done) {
+  it('should destroy a user from firebase', function () {
     var id;
-    dsFirebaseAdapter.create(User, { name: 'John' })
+    return dsFirebaseAdapter.create(User, { name: 'John' })
       .then(function (user) {
         id = user.id;
         return dsFirebaseAdapter.destroy(User, user.id);
@@ -9,10 +9,11 @@ describe('dsFirebaseAdapter#destroy', function () {
       .then(function () {
         return dsFirebaseAdapter.find(User, id);
       })
-      .then(function (destroyedUser) {
-        assert.isFalse(!!destroyedUser);
-        done();
+      .then(function () {
+        throw new Error('Should not have reached this!');
       })
-      .catch(done);
+      .catch(function (err) {
+        assert.equal(err.message, 'Not Found!');
+      });
   });
 });

@@ -1,3 +1,8 @@
+##### 1.0.1 - 25 February 2015
+
+###### Backwards compatible bug fixes
+- #7 - Does not properly throw error in find() (like other adapters) when the item cannot be found
+
 ##### 1.0.0 - 03 February 2015
 
 Stable Version 1.0.0

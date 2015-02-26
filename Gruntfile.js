@@ -35,6 +35,8 @@ module.exports = function (grunt) {
     uglify: {
       main: {
         options: {
+          sourceMap: true,
+          sourceMapName: 'dist/js-data-firebase.min.map',
           banner: '/**\n' +
             '* @author Jason Dobry <jason.dobry@gmail.com>\n' +
             '* @file js-data-firebase.min.js\n' +
