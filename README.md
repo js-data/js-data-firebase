@@ -7,8 +7,9 @@ Firebase adapter for [js-data](http://www.js-data.io/).
 ## API Documentation
 [DSFirebaseAdapter](http://www.js-data.io/docs/dsfirebaseadapter)
 
-## Demo
-[https://js-data-firebase.firebaseapp.com/](https://js-data-firebase.firebaseapp.com/)
+## Demos
+[js-data-firebase + Angular](https://js-data-firebase.firebaseapp.com/angular/)
+[js-data-firebase + React](https://js-data-firebase.firebaseapp.com/react/)
 
 ## Project Status
 
