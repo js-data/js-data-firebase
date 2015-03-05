@@ -31,22 +31,24 @@
         <p><img src="https://raw.githubusercontent.com/js-data/js-data/master/js-data.png" alt="js-data logo" title="js-data" align="right" width="64" height="64"></p>
 
 <h2>
-<a name="js-data-firebase" class="anchor" href="#js-data-firebase"><span class="octicon octicon-link"></span></a>js-data-firebase</h2>
+<a id="js-data-firebase--" class="anchor" href="#js-data-firebase--" aria-hidden="true"><span class="octicon octicon-link"></span></a>js-data-firebase <a href="http://badge.fury.io/bo/js-data-firebase"><img src="https://badge.fury.io/bo/js-data-firebase.png" alt="Bower version"></a> <a href="http://badge.fury.io/js/js-data-firebase"><img src="https://badge.fury.io/js/js-data-firebase.png" alt="NPM version"></a>
+</h2>
 
 <p>Firebase adapter for <a href="http://www.js-data.io/">js-data</a>.</p>
 
 <h2>
-<a name="api-documentation" class="anchor" href="#api-documentation"><span class="octicon octicon-link"></span></a>API Documentation</h2>
+<a id="api-documentation" class="anchor" href="#api-documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>API Documentation</h2>
 
 <p><a href="http://www.js-data.io/docs/dsfirebaseadapter">DSFirebaseAdapter</a></p>
 
 <h2>
-<a name="demo" class="anchor" href="#demo"><span class="octicon octicon-link"></span></a>Demo</h2>
+<a id="demos" class="anchor" href="#demos" aria-hidden="true"><span class="octicon octicon-link"></span></a>Demos</h2>
 
-<p><a href="https://js-data-firebase.firebaseapp.com/">https://js-data-firebase.firebaseapp.com/</a></p>
+<p><a href="https://js-data-firebase.firebaseapp.com/angular/">js-data-firebase + Angular</a>
+<a href="https://js-data-firebase.firebaseapp.com/react/">js-data-firebase + React</a></p>
 
 <h2>
-<a name="project-status" class="anchor" href="#project-status"><span class="octicon octicon-link"></span></a>Project Status</h2>
+<a id="project-status" class="anchor" href="#project-status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project Status</h2>
 
 <table>
 <thead>
@@ -62,7 +64,7 @@
 </tr>
 <tr>
 <td>NPM</td>
-<td><a href="http://badge.fury.io/js/js-data-firebase"><img src="https://badge.fury.io/js/js-data-firebase.png" alt="NPM version"></a></td>
+<td><a href="https://nodei.co/npm/js-data-firebase/"><img src="https://nodei.co/npm/js-data-firebase.png?downloads=true&amp;stars=true" alt="NPM"></a></td>
 </tr>
 <tr>
 <td>Build Status</td>
@@ -84,7 +86,7 @@
 </table>
 
 <h2>
-<a name="quick-start" class="anchor" href="#quick-start"><span class="octicon octicon-link"></span></a>Quick Start</h2>
+<a id="quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick Start</h2>
 
 <p><code>bower install --save js-data js-data-firebase</code> or <code>npm install --save js-data js-data-firebase</code>.</p>
 
@@ -92,24 +94,23 @@
 
 <p>Load <code>js-data-firebase.js</code> after <code>js-data.js</code>.</p>
 
-<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">adapter</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">DSFirebaseAdapter</span><span class="p">({</span>
-  <span class="nx">basePath</span><span class="o">:</span> <span class="s1">'https://my-app.firebase.io'</span>
-<span class="p">});</span>
+<div class="highlight highlight-js"><pre><span class="pl-s">var</span> adapter <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">DSFirebaseAdapter</span>({
+  basePath<span class="pl-k">:</span> <span class="pl-s1"><span class="pl-pds">'</span>https://my-app.firebase.io<span class="pl-pds">'</span></span>
+});
 
-<span class="kd">var</span> <span class="nx">store</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">JSData</span><span class="p">.</span><span class="nx">DS</span><span class="p">();</span>
+<span class="pl-s">var</span> store <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">JSData.DS</span>();
 
-<span class="nx">store</span><span class="p">.</span><span class="nx">registerAdapter</span><span class="p">(</span><span class="s1">'firebase'</span><span class="p">,</span> <span class="nx">adapter</span><span class="p">,</span> <span class="p">{</span> <span class="k">default</span><span class="o">:</span> <span class="kc">true</span> <span class="p">});</span>
+store.registerAdapter(<span class="pl-s1"><span class="pl-pds">'</span>firebase<span class="pl-pds">'</span></span>, adapter, { <span class="pl-k">default</span><span class="pl-k">:</span> <span class="pl-c1">true</span> });
 
-<span class="c1">// "store" will now use the firebase adapter for all async operations</span>
-</pre></div>
+<span class="pl-c">// "store" will now use the firebase adapter for all async operations</span></pre></div>
 
 <h2>
-<a name="changelog" class="anchor" href="#changelog"><span class="octicon octicon-link"></span></a>Changelog</h2>
+<a id="changelog" class="anchor" href="#changelog" aria-hidden="true"><span class="octicon octicon-link"></span></a>Changelog</h2>
 
 <p><a href="https://github.com/js-data/js-data-firebase/blob/master/CHANGELOG.md">CHANGELOG.md</a></p>
 
 <h2>
-<a name="community" class="anchor" href="#community"><span class="octicon octicon-link"></span></a>Community</h2>
+<a id="community" class="anchor" href="#community" aria-hidden="true"><span class="octicon octicon-link"></span></a>Community</h2>
 
 <ul>
 <li>
@@ -122,7 +123,7 @@
 </ul>
 
 <h2>
-<a name="contributing" class="anchor" href="#contributing"><span class="octicon octicon-link"></span></a>Contributing</h2>
+<a id="contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
 
 <p>First, feel free to contact me with questions. <a href="https://groups.io/org/groupsio/jsdata">Mailing List</a>. <a href="https://github.com/js-data/js-data-firebase/issues">Issues</a>.</p>
 
@@ -139,11 +140,11 @@
 </ol>
 
 <h2>
-<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h2>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
 
 <p>The MIT License (MIT)</p>
 
-<p>Copyright (c) 2014 Jason Dobry</p>
+<p>Copyright (c) 2014-2015 Jason Dobry</p>
 
 <p>Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
