@@ -1,6 +1,6 @@
 /*!
  * js-data-firebase
- * @version 1.1.0 - Homepage <http://www.js-data.io/docs/dsfirebaseadapter>
+ * @version 1.1.1 - Homepage <http://www.js-data.io/docs/dsfirebaseadapter>
  * @author Jason Dobry <jason.dobry@gmail.com>
  * @copyright (c) 2014-2015 Jason Dobry 
  * @license MIT <https://github.com/js-data/js-data-firebase/blob/master/LICENSE>
@@ -82,6 +82,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var deepMixIn = DSUtils.deepMixIn;
 	var removeCircular = DSUtils.removeCircular;
 	var P = DSUtils.Promise;
+	var forOwn = DSUtils.forOwn;
 
 	var filter = emptyStore.defaults.defaultFilter;
 
@@ -118,6 +119,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            if (!item) {
 	              reject(new Error("Not Found!"));
 	            } else {
+	              item[resourceConfig.idAttribute] = item[resourceConfig.idAttribute] || id;
 	              resolve(item);
 	            }
 	          }, reject, _this);
@@ -130,7 +132,13 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	        return new P(function (resolve, reject) {
 	          return _this.getRef(resourceConfig, options).once("value", function (dataSnapshot) {
-	            resolve(filter.call(emptyStore, values(dataSnapshot.val()), resourceConfig.name, params, options));
+	            var data = dataSnapshot.val();
+	            forOwn(data, function (value, key) {
+	              if (!value[resourceConfig.idAttribute]) {
+	                value[resourceConfig.idAttribute] = "/" + key;
+	              }
+	            });
+	            resolve(filter.call(emptyStore, values(data), resourceConfig.name, params, options));
 	          }, reject, _this);
 	        });
 	      }

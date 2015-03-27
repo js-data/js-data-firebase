@@ -5,7 +5,7 @@ import values from 'mout/object/values';
 
 let emptyStore = new JSData.DS();
 let DSUtils = JSData.DSUtils;
-let { deepMixIn, removeCircular, Promise: P  } = DSUtils;
+let { deepMixIn, removeCircular, Promise: P, forOwn  } = DSUtils;
 let filter = emptyStore.defaults.defaultFilter;
 
 class Defaults {
@@ -34,6 +34,7 @@ class DSFirebaseAdapter {
         if (!item) {
           reject(new Error('Not Found!'));
         } else {
+          item[resourceConfig.idAttribute] = item[resourceConfig.idAttribute] || id;
           resolve(item);
         }
       }, reject, this);
@@ -43,7 +44,13 @@ class DSFirebaseAdapter {
   findAll(resourceConfig, params, options) {
     return new P((resolve, reject) => {
       return this.getRef(resourceConfig, options).once('value', dataSnapshot => {
-        resolve(filter.call(emptyStore, values(dataSnapshot.val()), resourceConfig.name, params, options));
+        let data = dataSnapshot.val();
+        forOwn(data, (value, key) => {
+          if (!value[resourceConfig.idAttribute]) {
+            value[resourceConfig.idAttribute] = `/${key}`;
+          }
+        });
+        resolve(filter.call(emptyStore, values(data), resourceConfig.name, params, options));
       }, reject, this);
     });
   }

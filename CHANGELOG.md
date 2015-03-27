@@ -1,3 +1,8 @@
+##### 1.1.1 - 27 March 2015
+
+###### Backwards compatible bug fixes
+- #9 - Race condition with missing IDs
+
 ##### 1.1.0 - 26 March 2015
 
 ###### Backwards compatible bug fixes
