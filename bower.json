@@ -29,7 +29,7 @@
     "karma.start.js"
   ],
   "dependencies": {
-    "js-data": ">=1.2.0",
+    "js-data": ">=1.5.7",
     "firebase": ">=1.1.x"
   }
 }

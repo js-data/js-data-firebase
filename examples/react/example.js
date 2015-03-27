@@ -45,10 +45,10 @@ var UserApp = React.createClass({
     return { users: UserStore.getAll(), name: '' };
   },
   onChange: function () {
-    this.setState({ users: UserStore.getAll(), name: this.props.name || '' });
+    this.setState({ users: UserStore.getAll() });
   },
   onInput: function (event) {
-    this.setState({ users: this.state.users, name: event.target.value });
+    this.setState({ name: event.target.value });
   },
   componentDidMount: function () {
     UserStore.on('change', this.onChange);
@@ -61,7 +61,6 @@ var UserApp = React.createClass({
     UserStore.create({
       name: this.state.name
     });
-    this.setState({ users: UserStore.getAll(), name: '' });
   },
   render: function () {
     var users = this.state.users;

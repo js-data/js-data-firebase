@@ -1,7 +1,16 @@
+##### 1.1.0 - 26 March 2015
+
+###### Backwards compatible bug fixes
+- #7 - Should not be saving relations (duplicating data)
+- #8 - Need to use removeCircular
+
+###### Other
+- #6 - Convert to ES6
+
 ##### 1.0.1 - 25 February 2015
 
 ###### Backwards compatible bug fixes
-- #7 - Does not properly throw error in find() (like other adapters) when the item cannot be found
+- #4 - Does not properly throw error in find() (like other adapters) when the item cannot be found
 
 ##### 1.0.0 - 03 February 2015
 
