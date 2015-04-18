@@ -1,3 +1,11 @@
+##### 2.0.0-beta.1 - 18 April 2015
+
+###### Backwards compatible bug fixes
+- #11 - Race condition, tasks need to be atomic
+
+###### Other
+- Updated dependencies
+
 ##### 1.1.1 - 27 March 2015
 
 ###### Backwards compatible bug fixes

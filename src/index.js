@@ -5,7 +5,7 @@ import values from 'mout/object/values';
 
 let emptyStore = new JSData.DS();
 let DSUtils = JSData.DSUtils;
-let { deepMixIn, removeCircular, Promise: P, forOwn  } = DSUtils;
+let { deepMixIn, removeCircular, forOwn  } = DSUtils;
 let filter = emptyStore.defaults.defaultFilter;
 
 class Defaults {
@@ -13,6 +13,43 @@ class Defaults {
 }
 
 Defaults.prototype.basePath = '';
+
+let queue = [];
+let taskInProcess = false;
+
+function enqueue(task) {
+  queue.push(task);
+}
+
+function dequeue() {
+  if (queue.length && !taskInProcess) {
+    taskInProcess = true;
+    queue[0]();
+  }
+}
+
+function queueTask(task) {
+  if (!queue.length) {
+    enqueue(task);
+    dequeue();
+  } else {
+    enqueue(task);
+  }
+}
+
+function createTask(fn) {
+  return new DSUtils.Promise(fn).then(result => {
+    taskInProcess = false;
+    queue.shift();
+    setTimeout(dequeue, 0);
+    return result;
+  }, err => {
+    taskInProcess = false;
+    queue.shift();
+    setTimeout(dequeue, 0);
+    return DSUtils.Promise.reject(err);
+  });
+}
 
 class DSFirebaseAdapter {
   constructor(options) {
@@ -28,30 +65,34 @@ class DSFirebaseAdapter {
   }
 
   find(resourceConfig, id, options) {
-    return new P((resolve, reject) => {
-      return this.getRef(resourceConfig, options).child(id).once('value', dataSnapshot => {
-        let item = dataSnapshot.val();
-        if (!item) {
-          reject(new Error('Not Found!'));
-        } else {
-          item[resourceConfig.idAttribute] = item[resourceConfig.idAttribute] || id;
-          resolve(item);
-        }
-      }, reject, this);
+    return createTask((resolve, reject) => {
+      queueTask(() => {
+        this.getRef(resourceConfig, options).child(id).once('value', dataSnapshot => {
+          let item = dataSnapshot.val();
+          if (!item) {
+            reject(new Error('Not Found!'));
+          } else {
+            item[resourceConfig.idAttribute] = item[resourceConfig.idAttribute] || id;
+            resolve(item);
+          }
+        }, reject, this);
+      });
     });
   }
 
   findAll(resourceConfig, params, options) {
-    return new P((resolve, reject) => {
-      return this.getRef(resourceConfig, options).once('value', dataSnapshot => {
-        let data = dataSnapshot.val();
-        forOwn(data, (value, key) => {
-          if (!value[resourceConfig.idAttribute]) {
-            value[resourceConfig.idAttribute] = `/${key}`;
-          }
-        });
-        resolve(filter.call(emptyStore, values(data), resourceConfig.name, params, options));
-      }, reject, this);
+    return createTask((resolve, reject) => {
+      queueTask(() => {
+        this.getRef(resourceConfig, options).once('value', dataSnapshot => {
+          let data = dataSnapshot.val();
+          forOwn(data, (value, key) => {
+            if (!value[resourceConfig.idAttribute]) {
+              value[resourceConfig.idAttribute] = `/${key}`;
+            }
+          });
+          resolve(filter.call(emptyStore, values(data), resourceConfig.name, params, options));
+        }, reject, this);
+      });
     });
   }
 
@@ -60,66 +101,70 @@ class DSFirebaseAdapter {
     if (DSUtils.isString(id) || DSUtils.isNumber(id)) {
       return this.update(resourceConfig, id, attrs, options);
     } else {
-      return new P((resolve, reject) => {
-        let resourceRef = this.getRef(resourceConfig, options);
-        let itemRef = resourceRef.push(removeCircular(omit(attrs, resourceConfig.relationFields || [])), err => {
-          if (err) {
-            return reject(err);
-          } else {
-            let id = itemRef.toString().replace(resourceRef.toString(), '');
-            itemRef.child(resourceConfig.idAttribute).set(id, err => {
-              if (err) {
-                reject(err);
-              } else {
-                itemRef.once('value', dataSnapshot => {
-                  try {
-                    resolve(dataSnapshot.val());
-                  } catch (err) {
-                    reject(err);
-                  }
-                }, reject, this);
-              }
-            });
-          }
+      return createTask((resolve, reject) => {
+        queueTask(() => {
+          let resourceRef = this.getRef(resourceConfig, options);
+          var itemRef = resourceRef.push(removeCircular(omit(attrs, resourceConfig.relationFields || [])), err => {
+            if (err) {
+              return reject(err);
+            } else {
+              let id = itemRef.toString().replace(resourceRef.toString(), '');
+              itemRef.child(resourceConfig.idAttribute).set(id, err => {
+                if (err) {
+                  reject(err);
+                } else {
+                  itemRef.once('value', dataSnapshot => {
+                    try {
+                      resolve(dataSnapshot.val());
+                    } catch (err) {
+                      reject(err);
+                    }
+                  }, reject, this);
+                }
+              });
+            }
+          });
         });
       });
     }
   }
 
   update(resourceConfig, id, attrs, options) {
-    attrs = removeCircular(omit(attrs || {}, resourceConfig.relationFields || []));
-    return new P((resolve, reject) => {
-      let itemRef = this.getRef(resourceConfig, options).child(id);
-      itemRef.once('value', dataSnapshot => {
-        try {
-          let item = dataSnapshot.val() || {};
-          let fields, removed, i;
-          if (resourceConfig.relations) {
-            fields = resourceConfig.relationFields;
-            removed = [];
-            for (i = 0; fields.length; i++) {
-              removed.push(attrs[fields[i]]);
-              delete attrs[fields[i]];
+    return createTask((resolve, reject) => {
+      queueTask(() => {
+        attrs = removeCircular(omit(attrs || {}, resourceConfig.relationFields || []));
+        let itemRef = this.getRef(resourceConfig, options).child(id);
+        itemRef.once('value', dataSnapshot => {
+          try {
+            let item = dataSnapshot.val() || {};
+            let fields, removed, i;
+            if (resourceConfig.relations) {
+              fields = resourceConfig.relationFields;
+              removed = [];
+              for (i = 0; fields.length; i++) {
+                removed.push(attrs[fields[i]]);
+                delete attrs[fields[i]];
+              }
             }
+            deepMixIn(item, attrs);
+            if (resourceConfig.relations) {
+              fields = resourceConfig.relationFields;
+              for (i = 0; fields.length; i++) {
+                attrs[fields[i]] = removed.shift();
+              }
+            }
+            itemRef.set(item, err => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve(item);
+              }
+            });
+          } catch (err) {
+            reject(err);
           }
-          deepMixIn(item, attrs);
-          if (resourceConfig.relations) {
-            fields = resourceConfig.relationFields;
-            for (i = 0; fields.length; i++) {
-              attrs[fields[i]] = removed.shift();
-            }
-          }
-          itemRef.set(item, err => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(item);
-            }
-          });
-        } catch (err) {
-          reject(err);
-        }
-      }, reject, this);
+        }, reject, this);
+      });
     });
   }
 
@@ -129,18 +174,20 @@ class DSFirebaseAdapter {
       DSUtils.forEach(items, item => {
         tasks.push(this.update(resourceConfig, item[resourceConfig.idAttribute], attrs, options));
       });
-      return P.all(tasks);
+      return DSUtils.Promise.all(tasks);
     });
   }
 
   destroy(resourceConfig, id, options) {
-    return new P((resolve, reject) => {
-      this.getRef(resourceConfig, options).child(id).remove(err => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
+    return createTask((resolve, reject) => {
+      queueTask(() => {
+        this.getRef(resourceConfig, options).child(id).remove(err => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
       });
     });
   }
@@ -151,7 +198,7 @@ class DSFirebaseAdapter {
       DSUtils.forEach(items, item => {
         tasks.push(this.destroy(resourceConfig, item[resourceConfig.idAttribute], options));
       });
-      return P.all(tasks);
+      return DSUtils.Promise.all(tasks);
     });
   }
 }

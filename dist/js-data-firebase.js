@@ -1,6 +1,6 @@
 /*!
  * js-data-firebase
- * @version 1.1.1 - Homepage <http://www.js-data.io/docs/dsfirebaseadapter>
+ * @version 2.0.0-beta.1 - Homepage <http://www.js-data.io/docs/dsfirebaseadapter>
  * @author Jason Dobry <jason.dobry@gmail.com>
  * @copyright (c) 2014-2015 Jason Dobry 
  * @license MIT <https://github.com/js-data/js-data-firebase/blob/master/LICENSE>
@@ -63,25 +63,36 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
+	var _interopRequireWildcard = function (obj) { return obj && obj.__esModule ? obj : { 'default': obj }; };
 
-	var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-	var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } };
+	var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } };
 
-	var JSData = _interopRequire(__webpack_require__(1));
+	Object.defineProperty(exports, '__esModule', {
+	  value: true
+	});
 
-	var Firebase = _interopRequire(__webpack_require__(2));
+	var _JSData = __webpack_require__(1);
 
-	var omit = _interopRequire(__webpack_require__(3));
+	var _JSData2 = _interopRequireWildcard(_JSData);
 
-	var values = _interopRequire(__webpack_require__(4));
+	var _Firebase = __webpack_require__(2);
 
-	var emptyStore = new JSData.DS();
-	var DSUtils = JSData.DSUtils;
+	var _Firebase2 = _interopRequireWildcard(_Firebase);
+
+	var _omit = __webpack_require__(3);
+
+	var _omit2 = _interopRequireWildcard(_omit);
+
+	var _values = __webpack_require__(4);
+
+	var _values2 = _interopRequireWildcard(_values);
+
+	var emptyStore = new _JSData2['default'].DS();
+	var DSUtils = _JSData2['default'].DSUtils;
 	var deepMixIn = DSUtils.deepMixIn;
 	var removeCircular = DSUtils.removeCircular;
-	var P = DSUtils.Promise;
 	var forOwn = DSUtils.forOwn;
 
 	var filter = emptyStore.defaults.defaultFilter;
@@ -90,7 +101,44 @@ return /******/ (function(modules) { // webpackBootstrap
 	  _classCallCheck(this, Defaults);
 	};
 
-	Defaults.prototype.basePath = "";
+	Defaults.prototype.basePath = '';
+
+	var queue = [];
+	var taskInProcess = false;
+
+	function enqueue(task) {
+	  queue.push(task);
+	}
+
+	function dequeue() {
+	  if (queue.length && !taskInProcess) {
+	    taskInProcess = true;
+	    queue[0]();
+	  }
+	}
+
+	function queueTask(task) {
+	  if (!queue.length) {
+	    enqueue(task);
+	    dequeue();
+	  } else {
+	    enqueue(task);
+	  }
+	}
+
+	function createTask(fn) {
+	  return new DSUtils.Promise(fn).then(function (result) {
+	    taskInProcess = false;
+	    queue.shift();
+	    setTimeout(dequeue, 0);
+	    return result;
+	  }, function (err) {
+	    taskInProcess = false;
+	    queue.shift();
+	    setTimeout(dequeue, 0);
+	    return DSUtils.Promise.reject(err);
+	  });
+	}
 
 	var DSFirebaseAdapter = (function () {
 	  function DSFirebaseAdapter(options) {
@@ -99,92 +147,99 @@ return /******/ (function(modules) { // webpackBootstrap
 	    options = options || {};
 	    this.defaults = new Defaults();
 	    deepMixIn(this.defaults, options);
-	    this.ref = new Firebase(options.basePath || this.defaults.basePath);
+	    this.ref = new _Firebase2['default'](options.basePath || this.defaults.basePath);
 	  }
 
-	  _createClass(DSFirebaseAdapter, {
-	    getRef: {
-	      value: function getRef(resourceConfig, options) {
-	        options = options || {};
-	        return this.ref.child(options.endpoint || resourceConfig.endpoint);
-	      }
-	    },
-	    find: {
-	      value: function find(resourceConfig, id, options) {
-	        var _this = this;
+	  _createClass(DSFirebaseAdapter, [{
+	    key: 'getRef',
+	    value: function getRef(resourceConfig, options) {
+	      options = options || {};
+	      return this.ref.child(options.endpoint || resourceConfig.endpoint);
+	    }
+	  }, {
+	    key: 'find',
+	    value: function find(resourceConfig, id, options) {
+	      var _this = this;
 
-	        return new P(function (resolve, reject) {
-	          return _this.getRef(resourceConfig, options).child(id).once("value", function (dataSnapshot) {
+	      return createTask(function (resolve, reject) {
+	        queueTask(function () {
+	          _this.getRef(resourceConfig, options).child(id).once('value', function (dataSnapshot) {
 	            var item = dataSnapshot.val();
 	            if (!item) {
-	              reject(new Error("Not Found!"));
+	              reject(new Error('Not Found!'));
 	            } else {
 	              item[resourceConfig.idAttribute] = item[resourceConfig.idAttribute] || id;
 	              resolve(item);
 	            }
 	          }, reject, _this);
 	        });
-	      }
-	    },
-	    findAll: {
-	      value: function findAll(resourceConfig, params, options) {
-	        var _this = this;
+	      });
+	    }
+	  }, {
+	    key: 'findAll',
+	    value: function findAll(resourceConfig, params, options) {
+	      var _this2 = this;
 
-	        return new P(function (resolve, reject) {
-	          return _this.getRef(resourceConfig, options).once("value", function (dataSnapshot) {
+	      return createTask(function (resolve, reject) {
+	        queueTask(function () {
+	          _this2.getRef(resourceConfig, options).once('value', function (dataSnapshot) {
 	            var data = dataSnapshot.val();
 	            forOwn(data, function (value, key) {
 	              if (!value[resourceConfig.idAttribute]) {
-	                value[resourceConfig.idAttribute] = "/" + key;
+	                value[resourceConfig.idAttribute] = '/' + key;
 	              }
 	            });
-	            resolve(filter.call(emptyStore, values(data), resourceConfig.name, params, options));
-	          }, reject, _this);
+	            resolve(filter.call(emptyStore, _values2['default'](data), resourceConfig.name, params, options));
+	          }, reject, _this2);
 	        });
-	      }
-	    },
-	    create: {
-	      value: function create(resourceConfig, attrs, options) {
-	        var _this = this;
+	      });
+	    }
+	  }, {
+	    key: 'create',
+	    value: function create(resourceConfig, attrs, options) {
+	      var _this3 = this;
 
-	        var id = attrs[resourceConfig.idAttribute];
-	        if (DSUtils.isString(id) || DSUtils.isNumber(id)) {
-	          return this.update(resourceConfig, id, attrs, options);
-	        } else {
-	          return new P(function (resolve, reject) {
-	            var resourceRef = _this.getRef(resourceConfig, options);
-	            var itemRef = resourceRef.push(removeCircular(omit(attrs, resourceConfig.relationFields || [])), function (err) {
+	      var id = attrs[resourceConfig.idAttribute];
+	      if (DSUtils.isString(id) || DSUtils.isNumber(id)) {
+	        return this.update(resourceConfig, id, attrs, options);
+	      } else {
+	        return createTask(function (resolve, reject) {
+	          queueTask(function () {
+	            var resourceRef = _this3.getRef(resourceConfig, options);
+	            var itemRef = resourceRef.push(removeCircular(_omit2['default'](attrs, resourceConfig.relationFields || [])), function (err) {
 	              if (err) {
 	                return reject(err);
 	              } else {
-	                var _id = itemRef.toString().replace(resourceRef.toString(), "");
+	                var _id = itemRef.toString().replace(resourceRef.toString(), '');
 	                itemRef.child(resourceConfig.idAttribute).set(_id, function (err) {
 	                  if (err) {
 	                    reject(err);
 	                  } else {
-	                    itemRef.once("value", function (dataSnapshot) {
+	                    itemRef.once('value', function (dataSnapshot) {
 	                      try {
 	                        resolve(dataSnapshot.val());
 	                      } catch (err) {
 	                        reject(err);
 	                      }
-	                    }, reject, _this);
+	                    }, reject, _this3);
 	                  }
 	                });
 	              }
 	            });
 	          });
-	        }
+	        });
 	      }
-	    },
-	    update: {
-	      value: function update(resourceConfig, id, attrs, options) {
-	        var _this = this;
+	    }
+	  }, {
+	    key: 'update',
+	    value: function update(resourceConfig, id, attrs, options) {
+	      var _this4 = this;
 
-	        attrs = removeCircular(omit(attrs || {}, resourceConfig.relationFields || []));
-	        return new P(function (resolve, reject) {
-	          var itemRef = _this.getRef(resourceConfig, options).child(id);
-	          itemRef.once("value", function (dataSnapshot) {
+	      return createTask(function (resolve, reject) {
+	        queueTask(function () {
+	          attrs = removeCircular(_omit2['default'](attrs || {}, resourceConfig.relationFields || []));
+	          var itemRef = _this4.getRef(resourceConfig, options).child(id);
+	          itemRef.once('value', function (dataSnapshot) {
 	            try {
 	              (function () {
 	                var item = dataSnapshot.val() || {};
@@ -217,29 +272,31 @@ return /******/ (function(modules) { // webpackBootstrap
 	            } catch (err) {
 	              reject(err);
 	            }
-	          }, reject, _this);
+	          }, reject, _this4);
 	        });
-	      }
-	    },
-	    updateAll: {
-	      value: function updateAll(resourceConfig, attrs, params, options) {
-	        var _this = this;
+	      });
+	    }
+	  }, {
+	    key: 'updateAll',
+	    value: function updateAll(resourceConfig, attrs, params, options) {
+	      var _this5 = this;
 
-	        return this.findAll(resourceConfig, params, options).then(function (items) {
-	          var tasks = [];
-	          DSUtils.forEach(items, function (item) {
-	            tasks.push(_this.update(resourceConfig, item[resourceConfig.idAttribute], attrs, options));
-	          });
-	          return P.all(tasks);
+	      return this.findAll(resourceConfig, params, options).then(function (items) {
+	        var tasks = [];
+	        DSUtils.forEach(items, function (item) {
+	          tasks.push(_this5.update(resourceConfig, item[resourceConfig.idAttribute], attrs, options));
 	        });
-	      }
-	    },
-	    destroy: {
-	      value: function destroy(resourceConfig, id, options) {
-	        var _this = this;
+	        return DSUtils.Promise.all(tasks);
+	      });
+	    }
+	  }, {
+	    key: 'destroy',
+	    value: function destroy(resourceConfig, id, options) {
+	      var _this6 = this;
 
-	        return new P(function (resolve, reject) {
-	          _this.getRef(resourceConfig, options).child(id).remove(function (err) {
+	      return createTask(function (resolve, reject) {
+	        queueTask(function () {
+	          _this6.getRef(resourceConfig, options).child(id).remove(function (err) {
 	            if (err) {
 	              reject(err);
 	            } else {
@@ -247,27 +304,28 @@ return /******/ (function(modules) { // webpackBootstrap
 	            }
 	          });
 	        });
-	      }
-	    },
-	    destroyAll: {
-	      value: function destroyAll(resourceConfig, params, options) {
-	        var _this = this;
-
-	        return this.findAll(resourceConfig, params, options).then(function (items) {
-	          var tasks = [];
-	          DSUtils.forEach(items, function (item) {
-	            tasks.push(_this.destroy(resourceConfig, item[resourceConfig.idAttribute], options));
-	          });
-	          return P.all(tasks);
-	        });
-	      }
+	      });
 	    }
-	  });
+	  }, {
+	    key: 'destroyAll',
+	    value: function destroyAll(resourceConfig, params, options) {
+	      var _this7 = this;
+
+	      return this.findAll(resourceConfig, params, options).then(function (items) {
+	        var tasks = [];
+	        DSUtils.forEach(items, function (item) {
+	          tasks.push(_this7.destroy(resourceConfig, item[resourceConfig.idAttribute], options));
+	        });
+	        return DSUtils.Promise.all(tasks);
+	      });
+	    }
+	  }]);
 
 	  return DSFirebaseAdapter;
 	})();
 
-	module.exports = DSFirebaseAdapter;
+	exports['default'] = DSFirebaseAdapter;
+	module.exports = exports['default'];
 
 /***/ },
 /* 1 */
