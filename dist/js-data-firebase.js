@@ -1,6 +1,6 @@
 /*!
  * js-data-firebase
- * @version 1.1.1 - Homepage <http://www.js-data.io/docs/dsfirebaseadapter>
+ * @version 1.1.2 - Homepage <http://www.js-data.io/docs/dsfirebaseadapter>
  * @author Jason Dobry <jason.dobry@gmail.com>
  * @copyright (c) 2014-2015 Jason Dobry 
  * @license MIT <https://github.com/js-data/js-data-firebase/blob/master/LICENSE>
@@ -63,22 +63,34 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
+	var _interopRequireWildcard = function (obj) { return obj && obj.__esModule ? obj : { 'default': obj }; };
 
-	var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-	var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } };
+	var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } };
 
-	var JSData = _interopRequire(__webpack_require__(1));
+	Object.defineProperty(exports, '__esModule', {
+	  value: true
+	});
 
-	var Firebase = _interopRequire(__webpack_require__(2));
+	var _JSData = __webpack_require__(1);
 
-	var omit = _interopRequire(__webpack_require__(3));
+	var _JSData2 = _interopRequireWildcard(_JSData);
 
-	var values = _interopRequire(__webpack_require__(4));
+	var _Firebase = __webpack_require__(2);
 
-	var emptyStore = new JSData.DS();
-	var DSUtils = JSData.DSUtils;
+	var _Firebase2 = _interopRequireWildcard(_Firebase);
+
+	var _omit = __webpack_require__(3);
+
+	var _omit2 = _interopRequireWildcard(_omit);
+
+	var _values = __webpack_require__(4);
+
+	var _values2 = _interopRequireWildcard(_values);
+
+	var emptyStore = new _JSData2['default'].DS();
+	var DSUtils = _JSData2['default'].DSUtils;
 	var deepMixIn = DSUtils.deepMixIn;
 	var removeCircular = DSUtils.removeCircular;
 	var P = DSUtils.Promise;
@@ -90,7 +102,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  _classCallCheck(this, Defaults);
 	};
 
-	Defaults.prototype.basePath = "";
+	Defaults.prototype.basePath = '';
 
 	var DSFirebaseAdapter = (function () {
 	  function DSFirebaseAdapter(options) {
@@ -99,175 +111,178 @@ return /******/ (function(modules) { // webpackBootstrap
 	    options = options || {};
 	    this.defaults = new Defaults();
 	    deepMixIn(this.defaults, options);
-	    this.ref = new Firebase(options.basePath || this.defaults.basePath);
+	    this.ref = new _Firebase2['default'](options.basePath || this.defaults.basePath);
 	  }
 
-	  _createClass(DSFirebaseAdapter, {
-	    getRef: {
-	      value: function getRef(resourceConfig, options) {
-	        options = options || {};
-	        return this.ref.child(options.endpoint || resourceConfig.endpoint);
-	      }
-	    },
-	    find: {
-	      value: function find(resourceConfig, id, options) {
-	        var _this = this;
+	  _createClass(DSFirebaseAdapter, [{
+	    key: 'getRef',
+	    value: function getRef(resourceConfig, options) {
+	      options = options || {};
+	      return this.ref.child(options.endpoint || resourceConfig.endpoint);
+	    }
+	  }, {
+	    key: 'find',
+	    value: function find(resourceConfig, id, options) {
+	      var _this = this;
 
-	        return new P(function (resolve, reject) {
-	          return _this.getRef(resourceConfig, options).child(id).once("value", function (dataSnapshot) {
-	            var item = dataSnapshot.val();
-	            if (!item) {
-	              reject(new Error("Not Found!"));
-	            } else {
-	              item[resourceConfig.idAttribute] = item[resourceConfig.idAttribute] || id;
-	              resolve(item);
+	      return new P(function (resolve, reject) {
+	        return _this.getRef(resourceConfig, options).child(id).once('value', function (dataSnapshot) {
+	          var item = dataSnapshot.val();
+	          if (!item) {
+	            reject(new Error('Not Found!'));
+	          } else {
+	            item[resourceConfig.idAttribute] = item[resourceConfig.idAttribute] || id;
+	            resolve(item);
+	          }
+	        }, reject, _this);
+	      });
+	    }
+	  }, {
+	    key: 'findAll',
+	    value: function findAll(resourceConfig, params, options) {
+	      var _this2 = this;
+
+	      return new P(function (resolve, reject) {
+	        return _this2.getRef(resourceConfig, options).once('value', function (dataSnapshot) {
+	          var data = dataSnapshot.val();
+	          forOwn(data, function (value, key) {
+	            if (!value[resourceConfig.idAttribute]) {
+	              value[resourceConfig.idAttribute] = '/' + key;
 	            }
-	          }, reject, _this);
-	        });
-	      }
-	    },
-	    findAll: {
-	      value: function findAll(resourceConfig, params, options) {
-	        var _this = this;
-
-	        return new P(function (resolve, reject) {
-	          return _this.getRef(resourceConfig, options).once("value", function (dataSnapshot) {
-	            var data = dataSnapshot.val();
-	            forOwn(data, function (value, key) {
-	              if (!value[resourceConfig.idAttribute]) {
-	                value[resourceConfig.idAttribute] = "/" + key;
-	              }
-	            });
-	            resolve(filter.call(emptyStore, values(data), resourceConfig.name, params, options));
-	          }, reject, _this);
-	        });
-	      }
-	    },
-	    create: {
-	      value: function create(resourceConfig, attrs, options) {
-	        var _this = this;
-
-	        var id = attrs[resourceConfig.idAttribute];
-	        if (DSUtils.isString(id) || DSUtils.isNumber(id)) {
-	          return this.update(resourceConfig, id, attrs, options);
-	        } else {
-	          return new P(function (resolve, reject) {
-	            var resourceRef = _this.getRef(resourceConfig, options);
-	            var itemRef = resourceRef.push(removeCircular(omit(attrs, resourceConfig.relationFields || [])), function (err) {
-	              if (err) {
-	                return reject(err);
-	              } else {
-	                var _id = itemRef.toString().replace(resourceRef.toString(), "");
-	                itemRef.child(resourceConfig.idAttribute).set(_id, function (err) {
-	                  if (err) {
-	                    reject(err);
-	                  } else {
-	                    itemRef.once("value", function (dataSnapshot) {
-	                      try {
-	                        resolve(dataSnapshot.val());
-	                      } catch (err) {
-	                        reject(err);
-	                      }
-	                    }, reject, _this);
-	                  }
-	                });
-	              }
-	            });
 	          });
-	        }
-	      }
-	    },
-	    update: {
-	      value: function update(resourceConfig, id, attrs, options) {
-	        var _this = this;
+	          resolve(filter.call(emptyStore, _values2['default'](data), resourceConfig.name, params, options));
+	        }, reject, _this2);
+	      });
+	    }
+	  }, {
+	    key: 'create',
+	    value: function create(resourceConfig, attrs, options) {
+	      var _this3 = this;
 
-	        attrs = removeCircular(omit(attrs || {}, resourceConfig.relationFields || []));
+	      var id = attrs[resourceConfig.idAttribute];
+	      if (DSUtils.isString(id) || DSUtils.isNumber(id)) {
+	        return this.update(resourceConfig, id, attrs, options);
+	      } else {
 	        return new P(function (resolve, reject) {
-	          var itemRef = _this.getRef(resourceConfig, options).child(id);
-	          itemRef.once("value", function (dataSnapshot) {
-	            try {
-	              (function () {
-	                var item = dataSnapshot.val() || {};
-	                var fields = undefined,
-	                    removed = undefined,
-	                    i = undefined;
-	                if (resourceConfig.relations) {
-	                  fields = resourceConfig.relationFields;
-	                  removed = [];
-	                  for (i = 0; fields.length; i++) {
-	                    removed.push(attrs[fields[i]]);
-	                    delete attrs[fields[i]];
-	                  }
-	                }
-	                deepMixIn(item, attrs);
-	                if (resourceConfig.relations) {
-	                  fields = resourceConfig.relationFields;
-	                  for (i = 0; fields.length; i++) {
-	                    attrs[fields[i]] = removed.shift();
-	                  }
-	                }
-	                itemRef.set(item, function (err) {
-	                  if (err) {
-	                    reject(err);
-	                  } else {
-	                    resolve(item);
-	                  }
-	                });
-	              })();
-	            } catch (err) {
-	              reject(err);
-	            }
-	          }, reject, _this);
-	        });
-	      }
-	    },
-	    updateAll: {
-	      value: function updateAll(resourceConfig, attrs, params, options) {
-	        var _this = this;
-
-	        return this.findAll(resourceConfig, params, options).then(function (items) {
-	          var tasks = [];
-	          DSUtils.forEach(items, function (item) {
-	            tasks.push(_this.update(resourceConfig, item[resourceConfig.idAttribute], attrs, options));
-	          });
-	          return P.all(tasks);
-	        });
-	      }
-	    },
-	    destroy: {
-	      value: function destroy(resourceConfig, id, options) {
-	        var _this = this;
-
-	        return new P(function (resolve, reject) {
-	          _this.getRef(resourceConfig, options).child(id).remove(function (err) {
+	          var resourceRef = _this3.getRef(resourceConfig, options);
+	          var itemRef = resourceRef.push(removeCircular(_omit2['default'](attrs, resourceConfig.relationFields || [])), function (err) {
 	            if (err) {
-	              reject(err);
+	              return reject(err);
 	            } else {
-	              resolve();
+	              var _id = itemRef.toString().replace(resourceRef.toString(), '');
+	              itemRef.child(resourceConfig.idAttribute).set(_id, function (err) {
+	                if (err) {
+	                  reject(err);
+	                } else {
+	                  itemRef.once('value', function (dataSnapshot) {
+	                    try {
+	                      resolve(dataSnapshot.val());
+	                    } catch (err) {
+	                      reject(err);
+	                    }
+	                  }, reject, _this3);
+	                }
+	              });
 	            }
 	          });
-	        });
-	      }
-	    },
-	    destroyAll: {
-	      value: function destroyAll(resourceConfig, params, options) {
-	        var _this = this;
-
-	        return this.findAll(resourceConfig, params, options).then(function (items) {
-	          var tasks = [];
-	          DSUtils.forEach(items, function (item) {
-	            tasks.push(_this.destroy(resourceConfig, item[resourceConfig.idAttribute], options));
-	          });
-	          return P.all(tasks);
 	        });
 	      }
 	    }
-	  });
+	  }, {
+	    key: 'update',
+	    value: function update(resourceConfig, id, attrs, options) {
+	      var _this4 = this;
+
+	      attrs = removeCircular(_omit2['default'](attrs || {}, resourceConfig.relationFields || []));
+	      return new P(function (resolve, reject) {
+	        var itemRef = _this4.getRef(resourceConfig, options).child(id);
+	        itemRef.once('value', function (dataSnapshot) {
+	          try {
+	            (function () {
+	              var item = dataSnapshot.val() || {};
+	              var fields = undefined,
+	                  removed = undefined,
+	                  i = undefined;
+	              if (resourceConfig.relations) {
+	                fields = resourceConfig.relationFields;
+	                removed = [];
+	                for (i = 0; i < fields.length; i++) {
+	                  removed.push(attrs[fields[i]]);
+	                  delete attrs[fields[i]];
+	                }
+	              }
+	              deepMixIn(item, attrs);
+	              if (resourceConfig.relations) {
+	                fields = resourceConfig.relationFields;
+	                for (i = 0; i < fields.length; i++) {
+	                  var toAddBack = removed.shift();
+	                  if (toAddBack) {
+	                    attrs[fields[i]] = toAddBack;
+	                  }
+	                }
+	              }
+	              itemRef.set(item, function (err) {
+	                if (err) {
+	                  reject(err);
+	                } else {
+	                  resolve(item);
+	                }
+	              });
+	            })();
+	          } catch (err) {
+	            reject(err);
+	          }
+	        }, reject, _this4);
+	      });
+	    }
+	  }, {
+	    key: 'updateAll',
+	    value: function updateAll(resourceConfig, attrs, params, options) {
+	      var _this5 = this;
+
+	      return this.findAll(resourceConfig, params, options).then(function (items) {
+	        var tasks = [];
+	        DSUtils.forEach(items, function (item) {
+	          tasks.push(_this5.update(resourceConfig, item[resourceConfig.idAttribute], attrs, options));
+	        });
+	        return P.all(tasks);
+	      });
+	    }
+	  }, {
+	    key: 'destroy',
+	    value: function destroy(resourceConfig, id, options) {
+	      var _this6 = this;
+
+	      return new P(function (resolve, reject) {
+	        _this6.getRef(resourceConfig, options).child(id).remove(function (err) {
+	          if (err) {
+	            reject(err);
+	          } else {
+	            resolve();
+	          }
+	        });
+	      });
+	    }
+	  }, {
+	    key: 'destroyAll',
+	    value: function destroyAll(resourceConfig, params, options) {
+	      var _this7 = this;
+
+	      return this.findAll(resourceConfig, params, options).then(function (items) {
+	        var tasks = [];
+	        DSUtils.forEach(items, function (item) {
+	          tasks.push(_this7.destroy(resourceConfig, item[resourceConfig.idAttribute], options));
+	        });
+	        return P.all(tasks);
+	      });
+	    }
+	  }]);
 
 	  return DSFirebaseAdapter;
 	})();
 
-	module.exports = DSFirebaseAdapter;
+	exports['default'] = DSFirebaseAdapter;
+	module.exports = exports['default'];
 
 /***/ },
 /* 1 */
@@ -375,7 +390,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var indexOf = __webpack_require__(8);
+	var indexOf = __webpack_require__(10);
 
 	    /**
 	     * If array contains values.
@@ -391,8 +406,8 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var hasOwn = __webpack_require__(9);
-	var forIn = __webpack_require__(10);
+	var hasOwn = __webpack_require__(8);
+	var forIn = __webpack_require__(9);
 
 	    /**
 	     * Similar to Array/forEach but works over object properties and fixes Don't
@@ -419,40 +434,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 
 	    /**
-	     * Array.indexOf
-	     */
-	    function indexOf(arr, item, fromIndex) {
-	        fromIndex = fromIndex || 0;
-	        if (arr == null) {
-	            return -1;
-	        }
-
-	        var len = arr.length,
-	            i = fromIndex < 0 ? len + fromIndex : fromIndex;
-	        while (i < len) {
-	            // we iterate over sparse items since there is no way to make it
-	            // work properly on IE 7-8. see #64
-	            if (arr[i] === item) {
-	                return i;
-	            }
-
-	            i++;
-	        }
-
-	        return -1;
-	    }
-
-	    module.exports = indexOf;
-
-
-
-/***/ },
-/* 9 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-
-	    /**
 	     * Safer Object.hasOwnProperty
 	     */
 	     function hasOwn(obj, prop){
@@ -465,10 +446,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 10 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var hasOwn = __webpack_require__(9);
+	var hasOwn = __webpack_require__(8);
 
 	    var _hasDontEnumBug,
 	        _dontEnums;
@@ -543,6 +524,40 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    module.exports = forIn;
 
+
+
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+
+	    /**
+	     * Array.indexOf
+	     */
+	    function indexOf(arr, item, fromIndex) {
+	        fromIndex = fromIndex || 0;
+	        if (arr == null) {
+	            return -1;
+	        }
+
+	        var len = arr.length,
+	            i = fromIndex < 0 ? len + fromIndex : fromIndex;
+	        while (i < len) {
+	            // we iterate over sparse items since there is no way to make it
+	            // work properly on IE 7-8. see #64
+	            if (arr[i] === item) {
+	                return i;
+	            }
+
+	            i++;
+	        }
+
+	        return -1;
+	    }
+
+	    module.exports = indexOf;
 
 
 

@@ -97,7 +97,7 @@ class DSFirebaseAdapter {
           if (resourceConfig.relations) {
             fields = resourceConfig.relationFields;
             removed = [];
-            for (i = 0; fields.length; i++) {
+            for (i = 0; i < fields.length; i++) {
               removed.push(attrs[fields[i]]);
               delete attrs[fields[i]];
             }
@@ -105,8 +105,11 @@ class DSFirebaseAdapter {
           deepMixIn(item, attrs);
           if (resourceConfig.relations) {
             fields = resourceConfig.relationFields;
-            for (i = 0; fields.length; i++) {
-              attrs[fields[i]] = removed.shift();
+            for (i = 0; i < fields.length; i++) {
+              let toAddBack = removed.shift();
+              if (toAddBack) {
+                attrs[fields[i]] = toAddBack;
+              }
             }
           }
           itemRef.set(item, err => {

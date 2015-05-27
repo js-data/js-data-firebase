@@ -1,3 +1,8 @@
+##### 1.1.1 - 27 May 2015
+
+###### Backwards compatible bug fixes
+- #13 - Infinite loop
+
 ##### 1.1.1 - 27 March 2015
 
 ###### Backwards compatible bug fixes
