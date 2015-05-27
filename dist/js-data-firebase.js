@@ -249,7 +249,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                if (resourceConfig.relations) {
 	                  fields = resourceConfig.relationFields;
 	                  removed = [];
-	                  for (i = 0; fields.length; i++) {
+	                  for (i = 0; i < fields.length; i++) {
 	                    removed.push(attrs[fields[i]]);
 	                    delete attrs[fields[i]];
 	                  }
@@ -257,8 +257,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	                deepMixIn(item, attrs);
 	                if (resourceConfig.relations) {
 	                  fields = resourceConfig.relationFields;
-	                  for (i = 0; fields.length; i++) {
-	                    attrs[fields[i]] = removed.shift();
+	                  for (i = 0; i < fields.length; i++) {
+	                    var toAddBack = removed.shift();
+	                    if (toAddBack) {
+	                      attrs[fields[i]] = toAddBack;
+	                    }
 	                  }
 	                }
 	                itemRef.set(item, function (err) {
@@ -433,7 +436,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var indexOf = __webpack_require__(8);
+	var indexOf = __webpack_require__(10);
 
 	    /**
 	     * If array contains values.
@@ -449,8 +452,8 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var hasOwn = __webpack_require__(9);
-	var forIn = __webpack_require__(10);
+	var hasOwn = __webpack_require__(8);
+	var forIn = __webpack_require__(9);
 
 	    /**
 	     * Similar to Array/forEach but works over object properties and fixes Don't
@@ -477,40 +480,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 
 	    /**
-	     * Array.indexOf
-	     */
-	    function indexOf(arr, item, fromIndex) {
-	        fromIndex = fromIndex || 0;
-	        if (arr == null) {
-	            return -1;
-	        }
-
-	        var len = arr.length,
-	            i = fromIndex < 0 ? len + fromIndex : fromIndex;
-	        while (i < len) {
-	            // we iterate over sparse items since there is no way to make it
-	            // work properly on IE 7-8. see #64
-	            if (arr[i] === item) {
-	                return i;
-	            }
-
-	            i++;
-	        }
-
-	        return -1;
-	    }
-
-	    module.exports = indexOf;
-
-
-
-/***/ },
-/* 9 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-
-	    /**
 	     * Safer Object.hasOwnProperty
 	     */
 	     function hasOwn(obj, prop){
@@ -523,10 +492,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 10 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var hasOwn = __webpack_require__(9);
+	var hasOwn = __webpack_require__(8);
 
 	    var _hasDontEnumBug,
 	        _dontEnums;
@@ -601,6 +570,40 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    module.exports = forIn;
 
+
+
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+
+	    /**
+	     * Array.indexOf
+	     */
+	    function indexOf(arr, item, fromIndex) {
+	        fromIndex = fromIndex || 0;
+	        if (arr == null) {
+	            return -1;
+	        }
+
+	        var len = arr.length,
+	            i = fromIndex < 0 ? len + fromIndex : fromIndex;
+	        while (i < len) {
+	            // we iterate over sparse items since there is no way to make it
+	            // work properly on IE 7-8. see #64
+	            if (arr[i] === item) {
+	                return i;
+	            }
+
+	            i++;
+	        }
+
+	        return -1;
+	    }
+
+	    module.exports = indexOf;
 
 
 
