@@ -1,3 +1,7 @@
+##### 2.0.0-rc.1 - 27 June 2015
+
+Stable Version 2.0.0-rc.1
+
 ##### 2.0.0-beta.1 - 18 April 2015
 
 ###### Backwards compatible bug fixes

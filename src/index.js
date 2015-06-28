@@ -1,11 +1,10 @@
-import JSData from 'js-data';
-import Firebase from 'firebase';
-import omit from 'mout/object/omit';
-import values from 'mout/object/values';
+let JSData = require('js-data');
+let Firebase = require('firebase');
+let values = require('mout/object/values');
 
 let emptyStore = new JSData.DS();
 let DSUtils = JSData.DSUtils;
-let { deepMixIn, removeCircular, forOwn  } = DSUtils;
+let { omit, deepMixIn, removeCircular, forOwn  } = DSUtils;
 let filter = emptyStore.defaults.defaultFilter;
 
 class Defaults {
@@ -206,4 +205,4 @@ class DSFirebaseAdapter {
   }
 }
 
-export default DSFirebaseAdapter;
+module.exports = DSFirebaseAdapter;
