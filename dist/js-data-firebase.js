@@ -1,6 +1,6 @@
 /*!
  * js-data-firebase
- * @version 1.1.2 - Homepage <http://www.js-data.io/docs/dsfirebaseadapter>
+ * @version 2.0.0 - Homepage <http://www.js-data.io/docs/dsfirebaseadapter>
  * @author Jason Dobry <jason.dobry@gmail.com>
  * @copyright (c) 2014-2015 Jason Dobry 
  * @license MIT <https://github.com/js-data/js-data-firebase/blob/master/LICENSE>
@@ -63,37 +63,19 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var _interopRequireWildcard = function (obj) { return obj && obj.__esModule ? obj : { 'default': obj }; };
-
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-	var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } };
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-	Object.defineProperty(exports, '__esModule', {
-	  value: true
-	});
+	var JSData = __webpack_require__(1);
+	var Firebase = __webpack_require__(2);
+	var values = __webpack_require__(3);
 
-	var _JSData = __webpack_require__(1);
-
-	var _JSData2 = _interopRequireWildcard(_JSData);
-
-	var _Firebase = __webpack_require__(2);
-
-	var _Firebase2 = _interopRequireWildcard(_Firebase);
-
-	var _omit = __webpack_require__(3);
-
-	var _omit2 = _interopRequireWildcard(_omit);
-
-	var _values = __webpack_require__(4);
-
-	var _values2 = _interopRequireWildcard(_values);
-
-	var emptyStore = new _JSData2['default'].DS();
-	var DSUtils = _JSData2['default'].DSUtils;
+	var emptyStore = new JSData.DS();
+	var DSUtils = JSData.DSUtils;
+	var omit = DSUtils.omit;
 	var deepMixIn = DSUtils.deepMixIn;
 	var removeCircular = DSUtils.removeCircular;
-	var P = DSUtils.Promise;
 	var forOwn = DSUtils.forOwn;
 
 	var filter = emptyStore.defaults.defaultFilter;
@@ -104,6 +86,43 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	Defaults.prototype.basePath = '';
 
+	var queue = [];
+	var taskInProcess = false;
+
+	function enqueue(task) {
+	  queue.push(task);
+	}
+
+	function dequeue() {
+	  if (queue.length && !taskInProcess) {
+	    taskInProcess = true;
+	    queue[0]();
+	  }
+	}
+
+	function queueTask(task) {
+	  if (!queue.length) {
+	    enqueue(task);
+	    dequeue();
+	  } else {
+	    enqueue(task);
+	  }
+	}
+
+	function createTask(fn) {
+	  return new DSUtils.Promise(fn).then(function (result) {
+	    taskInProcess = false;
+	    queue.shift();
+	    setTimeout(dequeue, 0);
+	    return result;
+	  }, function (err) {
+	    taskInProcess = false;
+	    queue.shift();
+	    setTimeout(dequeue, 0);
+	    return DSUtils.Promise.reject(err);
+	  });
+	}
+
 	var DSFirebaseAdapter = (function () {
 	  function DSFirebaseAdapter(options) {
 	    _classCallCheck(this, DSFirebaseAdapter);
@@ -111,7 +130,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    options = options || {};
 	    this.defaults = new Defaults();
 	    deepMixIn(this.defaults, options);
-	    this.ref = new _Firebase2['default'](options.basePath || this.defaults.basePath);
+	    this.ref = new Firebase(options.basePath || this.defaults.basePath);
 	  }
 
 	  _createClass(DSFirebaseAdapter, [{
@@ -125,16 +144,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	    value: function find(resourceConfig, id, options) {
 	      var _this = this;
 
-	      return new P(function (resolve, reject) {
-	        return _this.getRef(resourceConfig, options).child(id).once('value', function (dataSnapshot) {
-	          var item = dataSnapshot.val();
-	          if (!item) {
-	            reject(new Error('Not Found!'));
-	          } else {
-	            item[resourceConfig.idAttribute] = item[resourceConfig.idAttribute] || id;
-	            resolve(item);
-	          }
-	        }, reject, _this);
+	      return createTask(function (resolve, reject) {
+	        queueTask(function () {
+	          _this.getRef(resourceConfig, options).child(id).once('value', function (dataSnapshot) {
+	            var item = dataSnapshot.val();
+	            if (!item) {
+	              reject(new Error('Not Found!'));
+	            } else {
+	              item[resourceConfig.idAttribute] = item[resourceConfig.idAttribute] || id;
+	              resolve(item);
+	            }
+	          }, reject, _this);
+	        });
 	      });
 	    }
 	  }, {
@@ -142,16 +163,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	    value: function findAll(resourceConfig, params, options) {
 	      var _this2 = this;
 
-	      return new P(function (resolve, reject) {
-	        return _this2.getRef(resourceConfig, options).once('value', function (dataSnapshot) {
-	          var data = dataSnapshot.val();
-	          forOwn(data, function (value, key) {
-	            if (!value[resourceConfig.idAttribute]) {
-	              value[resourceConfig.idAttribute] = '/' + key;
-	            }
-	          });
-	          resolve(filter.call(emptyStore, _values2['default'](data), resourceConfig.name, params, options));
-	        }, reject, _this2);
+	      return createTask(function (resolve, reject) {
+	        queueTask(function () {
+	          _this2.getRef(resourceConfig, options).once('value', function (dataSnapshot) {
+	            var data = dataSnapshot.val();
+	            forOwn(data, function (value, key) {
+	              if (!value[resourceConfig.idAttribute]) {
+	                value[resourceConfig.idAttribute] = '/' + key;
+	              }
+	            });
+	            resolve(filter.call(emptyStore, values(data), resourceConfig.name, params, options));
+	          }, reject, _this2);
+	        });
 	      });
 	    }
 	  }, {
@@ -163,27 +186,29 @@ return /******/ (function(modules) { // webpackBootstrap
 	      if (DSUtils.isString(id) || DSUtils.isNumber(id)) {
 	        return this.update(resourceConfig, id, attrs, options);
 	      } else {
-	        return new P(function (resolve, reject) {
-	          var resourceRef = _this3.getRef(resourceConfig, options);
-	          var itemRef = resourceRef.push(removeCircular(_omit2['default'](attrs, resourceConfig.relationFields || [])), function (err) {
-	            if (err) {
-	              return reject(err);
-	            } else {
-	              var _id = itemRef.toString().replace(resourceRef.toString(), '');
-	              itemRef.child(resourceConfig.idAttribute).set(_id, function (err) {
-	                if (err) {
-	                  reject(err);
-	                } else {
-	                  itemRef.once('value', function (dataSnapshot) {
-	                    try {
-	                      resolve(dataSnapshot.val());
-	                    } catch (err) {
-	                      reject(err);
-	                    }
-	                  }, reject, _this3);
-	                }
-	              });
-	            }
+	        return createTask(function (resolve, reject) {
+	          queueTask(function () {
+	            var resourceRef = _this3.getRef(resourceConfig, options);
+	            var itemRef = resourceRef.push(removeCircular(omit(attrs, resourceConfig.relationFields || [])), function (err) {
+	              if (err) {
+	                return reject(err);
+	              } else {
+	                var _id = itemRef.toString().replace(resourceRef.toString(), '');
+	                itemRef.child(resourceConfig.idAttribute).set(_id, function (err) {
+	                  if (err) {
+	                    reject(err);
+	                  } else {
+	                    itemRef.once('value', function (dataSnapshot) {
+	                      try {
+	                        resolve(dataSnapshot.val());
+	                      } catch (err) {
+	                        reject(err);
+	                      }
+	                    }, reject, _this3);
+	                  }
+	                });
+	              }
+	            });
 	          });
 	        });
 	      }
@@ -193,46 +218,48 @@ return /******/ (function(modules) { // webpackBootstrap
 	    value: function update(resourceConfig, id, attrs, options) {
 	      var _this4 = this;
 
-	      attrs = removeCircular(_omit2['default'](attrs || {}, resourceConfig.relationFields || []));
-	      return new P(function (resolve, reject) {
-	        var itemRef = _this4.getRef(resourceConfig, options).child(id);
-	        itemRef.once('value', function (dataSnapshot) {
-	          try {
-	            (function () {
-	              var item = dataSnapshot.val() || {};
-	              var fields = undefined,
-	                  removed = undefined,
-	                  i = undefined;
-	              if (resourceConfig.relations) {
-	                fields = resourceConfig.relationFields;
-	                removed = [];
-	                for (i = 0; i < fields.length; i++) {
-	                  removed.push(attrs[fields[i]]);
-	                  delete attrs[fields[i]];
-	                }
-	              }
-	              deepMixIn(item, attrs);
-	              if (resourceConfig.relations) {
-	                fields = resourceConfig.relationFields;
-	                for (i = 0; i < fields.length; i++) {
-	                  var toAddBack = removed.shift();
-	                  if (toAddBack) {
-	                    attrs[fields[i]] = toAddBack;
+	      return createTask(function (resolve, reject) {
+	        queueTask(function () {
+	          attrs = removeCircular(omit(attrs || {}, resourceConfig.relationFields || []));
+	          var itemRef = _this4.getRef(resourceConfig, options).child(id);
+	          itemRef.once('value', function (dataSnapshot) {
+	            try {
+	              (function () {
+	                var item = dataSnapshot.val() || {};
+	                var fields = undefined,
+	                    removed = undefined,
+	                    i = undefined;
+	                if (resourceConfig.relations) {
+	                  fields = resourceConfig.relationFields;
+	                  removed = [];
+	                  for (i = 0; i < fields.length; i++) {
+	                    removed.push(attrs[fields[i]]);
+	                    delete attrs[fields[i]];
 	                  }
 	                }
-	              }
-	              itemRef.set(item, function (err) {
-	                if (err) {
-	                  reject(err);
-	                } else {
-	                  resolve(item);
+	                deepMixIn(item, attrs);
+	                if (resourceConfig.relations) {
+	                  fields = resourceConfig.relationFields;
+	                  for (i = 0; i < fields.length; i++) {
+	                    var toAddBack = removed.shift();
+	                    if (toAddBack) {
+	                      attrs[fields[i]] = toAddBack;
+	                    }
+	                  }
 	                }
-	              });
-	            })();
-	          } catch (err) {
-	            reject(err);
-	          }
-	        }, reject, _this4);
+	                itemRef.set(item, function (err) {
+	                  if (err) {
+	                    reject(err);
+	                  } else {
+	                    resolve(item);
+	                  }
+	                });
+	              })();
+	            } catch (err) {
+	              reject(err);
+	            }
+	          }, reject, _this4);
+	        });
 	      });
 	    }
 	  }, {
@@ -245,7 +272,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        DSUtils.forEach(items, function (item) {
 	          tasks.push(_this5.update(resourceConfig, item[resourceConfig.idAttribute], attrs, options));
 	        });
-	        return P.all(tasks);
+	        return DSUtils.Promise.all(tasks);
 	      });
 	    }
 	  }, {
@@ -253,13 +280,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	    value: function destroy(resourceConfig, id, options) {
 	      var _this6 = this;
 
-	      return new P(function (resolve, reject) {
-	        _this6.getRef(resourceConfig, options).child(id).remove(function (err) {
-	          if (err) {
-	            reject(err);
-	          } else {
-	            resolve();
-	          }
+	      return createTask(function (resolve, reject) {
+	        queueTask(function () {
+	          _this6.getRef(resourceConfig, options).child(id).remove(function (err) {
+	            if (err) {
+	              reject(err);
+	            } else {
+	              resolve();
+	            }
+	          });
 	        });
 	      });
 	    }
@@ -273,7 +302,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        DSUtils.forEach(items, function (item) {
 	          tasks.push(_this7.destroy(resourceConfig, item[resourceConfig.idAttribute], options));
 	        });
-	        return P.all(tasks);
+	        return DSUtils.Promise.all(tasks);
 	      });
 	    }
 	  }]);
@@ -281,8 +310,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  return DSFirebaseAdapter;
 	})();
 
-	exports['default'] = DSFirebaseAdapter;
-	module.exports = exports['default'];
+	module.exports = DSFirebaseAdapter;
 
 /***/ },
 /* 1 */
@@ -300,34 +328,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 3 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var slice = __webpack_require__(5);
-	var contains = __webpack_require__(6);
-
-	    /**
-	     * Return a copy of the object, filtered to only contain properties except the blacklisted keys.
-	     */
-	    function omit(obj, var_keys){
-	        var keys = typeof arguments[1] !== 'string'? arguments[1] : slice(arguments, 1),
-	            out = {};
-
-	        for (var property in obj) {
-	            if (obj.hasOwnProperty(property) && !contains(keys, property)) {
-	                out[property] = obj[property];
-	            }
-	        }
-	        return out;
-	    }
-
-	    module.exports = omit;
-
-
-
-
-/***/ },
-/* 4 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var forOwn = __webpack_require__(7);
+	var forOwn = __webpack_require__(4);
 
 	    /**
 	     * Get object values
@@ -346,68 +347,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 5 */
+/* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
-	
-
-	    /**
-	     * Create slice of source array or array-like object
-	     */
-	    function slice(arr, start, end){
-	        var len = arr.length;
-
-	        if (start == null) {
-	            start = 0;
-	        } else if (start < 0) {
-	            start = Math.max(len + start, 0);
-	        } else {
-	            start = Math.min(start, len);
-	        }
-
-	        if (end == null) {
-	            end = len;
-	        } else if (end < 0) {
-	            end = Math.max(len + end, 0);
-	        } else {
-	            end = Math.min(end, len);
-	        }
-
-	        var result = [];
-	        while (start < end) {
-	            result.push(arr[start++]);
-	        }
-
-	        return result;
-	    }
-
-	    module.exports = slice;
-
-
-
-
-/***/ },
-/* 6 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var indexOf = __webpack_require__(10);
-
-	    /**
-	     * If array contains values.
-	     */
-	    function contains(arr, val) {
-	        return indexOf(arr, val) !== -1;
-	    }
-	    module.exports = contains;
-
-
-
-/***/ },
-/* 7 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var hasOwn = __webpack_require__(8);
-	var forIn = __webpack_require__(9);
+	var hasOwn = __webpack_require__(5);
+	var forIn = __webpack_require__(6);
 
 	    /**
 	     * Similar to Array/forEach but works over object properties and fixes Don't
@@ -428,7 +372,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 8 */
+/* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -446,10 +390,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 9 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var hasOwn = __webpack_require__(8);
+	var hasOwn = __webpack_require__(5);
 
 	    var _hasDontEnumBug,
 	        _dontEnums;
@@ -524,40 +468,6 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    module.exports = forIn;
 
-
-
-
-/***/ },
-/* 10 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-
-	    /**
-	     * Array.indexOf
-	     */
-	    function indexOf(arr, item, fromIndex) {
-	        fromIndex = fromIndex || 0;
-	        if (arr == null) {
-	            return -1;
-	        }
-
-	        var len = arr.length,
-	            i = fromIndex < 0 ? len + fromIndex : fromIndex;
-	        while (i < len) {
-	            // we iterate over sparse items since there is no way to make it
-	            // work properly on IE 7-8. see #64
-	            if (arr[i] === item) {
-	                return i;
-	            }
-
-	            i++;
-	        }
-
-	        return -1;
-	    }
-
-	    module.exports = indexOf;
 
 
 

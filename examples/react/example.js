@@ -1,12 +1,9 @@
 var store = new JSData.DS();
+var firebaseAdapter = new DSFirebaseAdapter({
+  basePath: 'https://js-data-firebase.firebaseio.com'
+});
 
-store.registerAdapter(
-  'firebase',
-  new DSFirebaseAdapter({
-    basePath: 'https://js-data-firebase.firebaseio.com'
-  }),
-  { default: true }
-);
+store.registerAdapter('firebase', firebaseAdapter, { default: true });
 
 // Flux pattern
 var UserStore = store.defineResource({
@@ -18,6 +15,30 @@ var UserStore = store.defineResource({
     UserStore.emit('change');
   }
 });
+
+// Activate a mostly auto-sync with Firebase
+// The only thing missing is auto-sync TO Firebase
+// This will be easier with js-data 2.x, but right
+// now you still have to do store.update('user', 1, { foo: 'bar' }), etc.
+for (var resourceName in store.definitions) {
+  var Resource = store.definitions[resourceName];
+  var ref = firebaseAdapter.ref.child(Resource.endpoint);
+  // Inject items into the store when they're added to Firebase
+  // Update items in the store when they're modified in Firebase
+  ref.on('child_changed', function (dataSnapshot) {
+    var data = dataSnapshot.val();
+    if (data[Resource.idAttribute]) {
+      Resource.inject(data);
+    }
+  });
+  // Eject items from the store when they're removed from Firebase
+  ref.on('child_removed', function (dataSnapshot) {
+    var data = dataSnapshot.val();
+    if (data[Resource.idAttribute]) {
+      Resource.eject(data[Resource.idAttribute]);
+    }
+  });
+};
 
 var UserItem = React.createClass({
   remove: function () {
@@ -57,9 +78,12 @@ var UserApp = React.createClass({
     UserStore.off('change', this.onChange);
   },
   createUser: function (e) {
+    var _this = this;
     e.preventDefault();
     UserStore.create({
-      name: this.state.name
+      name: _this.state.name
+    }).then(function () {
+      _this.setState({ name: '' });
     });
   },
   render: function () {

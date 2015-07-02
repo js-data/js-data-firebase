@@ -1,3 +1,19 @@
+##### 2.0.0 - 02 July 2015
+
+Stable Version 2.0.0
+
+##### 2.0.0-rc.1 - 27 June 2015
+
+Stable Version 2.0.0-rc.1
+
+##### 2.0.0-beta.1 - 18 April 2015
+
+###### Backwards compatible bug fixes
+- #11 - Race condition, tasks need to be atomic
+
+###### Other
+- Updated dependencies
+
 ##### 1.1.2 - 27 May 2015
 
 ###### Backwards compatible bug fixes
