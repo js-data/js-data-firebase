@@ -1,6 +1,6 @@
 /*!
  * js-data-firebase
- * @version 2.0.0-rc.1 - Homepage <http://www.js-data.io/docs/dsfirebaseadapter>
+ * @version 2.0.0 - Homepage <http://www.js-data.io/docs/dsfirebaseadapter>
  * @author Jason Dobry <jason.dobry@gmail.com>
  * @copyright (c) 2014-2015 Jason Dobry 
  * @license MIT <https://github.com/js-data/js-data-firebase/blob/master/LICENSE>

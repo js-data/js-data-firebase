@@ -1,3 +1,7 @@
+##### 2.0.0 - 02 July 2015
+
+Stable Version 2.0.0
+
 ##### 2.0.0-rc.1 - 27 June 2015
 
 Stable Version 2.0.0-rc.1
