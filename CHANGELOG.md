@@ -1,3 +1,8 @@
+##### 2.1.1 - 10 July 2015
+
+###### Backwards compatible bug fixes
+- fix for loading relations in find and findAll()
+
 ##### 2.1.0 - 10 July 2015
 
 ###### Backwards compatible API changes

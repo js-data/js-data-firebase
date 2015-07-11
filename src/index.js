@@ -93,11 +93,14 @@ class DSFirebaseAdapter {
           }
           if (containedName) {
             let __options = DSUtils.deepMixIn({}, options.orig ? options.orig() : options);
+            __options.with = options.with.slice();
             __options = DSUtils._(relationDef, __options);
             DSUtils.remove(__options.with, containedName);
             DSUtils.forEach(__options.with, (relation, i) => {
               if (relation && relation.indexOf(containedName) === 0 && relation.length >= containedName.length && relation[containedName.length] === '.') {
                 __options.with[i] = relation.substr(containedName.length + 1);
+              } else {
+                __options.with[i] = '';
               }
             });
 

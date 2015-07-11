@@ -1,6 +1,6 @@
 /*!
  * js-data-firebase
- * @version 2.1.0 - Homepage <http://www.js-data.io/docs/dsfirebaseadapter>
+ * @version 2.1.1 - Homepage <http://www.js-data.io/docs/dsfirebaseadapter>
  * @author Jason Dobry <jason.dobry@gmail.com>
  * @copyright (c) 2014-2015 Jason Dobry 
  * @license MIT <https://github.com/js-data/js-data-firebase/blob/master/LICENSE>
@@ -172,11 +172,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	          if (containedName) {
 	            (function () {
 	              var __options = DSUtils.deepMixIn({}, options.orig ? options.orig() : options);
+	              __options['with'] = options['with'].slice();
 	              __options = DSUtils._(relationDef, __options);
 	              DSUtils.remove(__options['with'], containedName);
 	              DSUtils.forEach(__options['with'], function (relation, i) {
 	                if (relation && relation.indexOf(containedName) === 0 && relation.length >= containedName.length && relation[containedName.length] === '.') {
 	                  __options['with'][i] = relation.substr(containedName.length + 1);
+	                } else {
+	                  __options['with'][i] = '';
 	                }
 	              });
 
@@ -513,7 +516,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 3 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var forOwn = __webpack_require__(6);
+	var forOwn = __webpack_require__(8);
 
 	    /**
 	     * Get object values
@@ -535,7 +538,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var makeIterator = __webpack_require__(7);
+	var makeIterator = __webpack_require__(6);
 
 	    /**
 	     * Array map
@@ -563,7 +566,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var filter = __webpack_require__(8);
+	var filter = __webpack_require__(7);
 
 	    /**
 	     * @return {array} Array of unique items
@@ -594,34 +597,9 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var hasOwn = __webpack_require__(9);
-	var forIn = __webpack_require__(10);
-
-	    /**
-	     * Similar to Array/forEach but works over object properties and fixes Don't
-	     * Enum bug on IE.
-	     * based on: http://whattheheadsaid.com/2010/10/a-safer-object-keys-compatibility-implementation
-	     */
-	    function forOwn(obj, fn, thisObj){
-	        forIn(obj, function(val, key){
-	            if (hasOwn(obj, key)) {
-	                return fn.call(thisObj, obj[key], key, obj);
-	            }
-	        });
-	    }
-
-	    module.exports = forOwn;
-
-
-
-
-/***/ },
-/* 7 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var identity = __webpack_require__(11);
-	var prop = __webpack_require__(12);
-	var deepMatches = __webpack_require__(13);
+	var identity = __webpack_require__(9);
+	var prop = __webpack_require__(10);
+	var deepMatches = __webpack_require__(11);
 
 	    /**
 	     * Converts argument into a valid iterator.
@@ -656,10 +634,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 8 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var makeIterator = __webpack_require__(7);
+	var makeIterator = __webpack_require__(6);
 
 	    /**
 	     * Array filter
@@ -688,7 +666,131 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var hasOwn = __webpack_require__(12);
+	var forIn = __webpack_require__(13);
+
+	    /**
+	     * Similar to Array/forEach but works over object properties and fixes Don't
+	     * Enum bug on IE.
+	     * based on: http://whattheheadsaid.com/2010/10/a-safer-object-keys-compatibility-implementation
+	     */
+	    function forOwn(obj, fn, thisObj){
+	        forIn(obj, function(val, key){
+	            if (hasOwn(obj, key)) {
+	                return fn.call(thisObj, obj[key], key, obj);
+	            }
+	        });
+	    }
+
+	    module.exports = forOwn;
+
+
+
+
+/***/ },
 /* 9 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+
+	    /**
+	     * Returns the first argument provided to it.
+	     */
+	    function identity(val){
+	        return val;
+	    }
+
+	    module.exports = identity;
+
+
+
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+
+	    /**
+	     * Returns a function that gets a property of the passed object
+	     */
+	    function prop(name){
+	        return function(obj){
+	            return obj[name];
+	        };
+	    }
+
+	    module.exports = prop;
+
+
+
+
+/***/ },
+/* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var forOwn = __webpack_require__(8);
+	var isArray = __webpack_require__(14);
+
+	    function containsMatch(array, pattern) {
+	        var i = -1, length = array.length;
+	        while (++i < length) {
+	            if (deepMatches(array[i], pattern)) {
+	                return true;
+	            }
+	        }
+
+	        return false;
+	    }
+
+	    function matchArray(target, pattern) {
+	        var i = -1, patternLength = pattern.length;
+	        while (++i < patternLength) {
+	            if (!containsMatch(target, pattern[i])) {
+	                return false;
+	            }
+	        }
+
+	        return true;
+	    }
+
+	    function matchObject(target, pattern) {
+	        var result = true;
+	        forOwn(pattern, function(val, key) {
+	            if (!deepMatches(target[key], val)) {
+	                // Return false to break out of forOwn early
+	                return (result = false);
+	            }
+	        });
+
+	        return result;
+	    }
+
+	    /**
+	     * Recursively check if the objects match.
+	     */
+	    function deepMatches(target, pattern){
+	        if (target && typeof target === 'object') {
+	            if (isArray(target) && isArray(pattern)) {
+	                return matchArray(target, pattern);
+	            } else {
+	                return matchObject(target, pattern);
+	            }
+	        } else {
+	            return target === pattern;
+	        }
+	    }
+
+	    module.exports = deepMatches;
+
+
+
+
+/***/ },
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -706,10 +808,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 10 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var hasOwn = __webpack_require__(9);
+	var hasOwn = __webpack_require__(12);
 
 	    var _hasDontEnumBug,
 	        _dontEnums;
@@ -783,105 +885,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 
 	    module.exports = forIn;
-
-
-
-
-/***/ },
-/* 11 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-
-	    /**
-	     * Returns the first argument provided to it.
-	     */
-	    function identity(val){
-	        return val;
-	    }
-
-	    module.exports = identity;
-
-
-
-
-/***/ },
-/* 12 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-
-	    /**
-	     * Returns a function that gets a property of the passed object
-	     */
-	    function prop(name){
-	        return function(obj){
-	            return obj[name];
-	        };
-	    }
-
-	    module.exports = prop;
-
-
-
-
-/***/ },
-/* 13 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var forOwn = __webpack_require__(6);
-	var isArray = __webpack_require__(14);
-
-	    function containsMatch(array, pattern) {
-	        var i = -1, length = array.length;
-	        while (++i < length) {
-	            if (deepMatches(array[i], pattern)) {
-	                return true;
-	            }
-	        }
-
-	        return false;
-	    }
-
-	    function matchArray(target, pattern) {
-	        var i = -1, patternLength = pattern.length;
-	        while (++i < patternLength) {
-	            if (!containsMatch(target, pattern[i])) {
-	                return false;
-	            }
-	        }
-
-	        return true;
-	    }
-
-	    function matchObject(target, pattern) {
-	        var result = true;
-	        forOwn(pattern, function(val, key) {
-	            if (!deepMatches(target[key], val)) {
-	                // Return false to break out of forOwn early
-	                return (result = false);
-	            }
-	        });
-
-	        return result;
-	    }
-
-	    /**
-	     * Recursively check if the objects match.
-	     */
-	    function deepMatches(target, pattern){
-	        if (target && typeof target === 'object') {
-	            if (isArray(target) && isArray(pattern)) {
-	                return matchArray(target, pattern);
-	            } else {
-	                return matchObject(target, pattern);
-	            }
-	        } else {
-	            return target === pattern;
-	        }
-	    }
-
-	    module.exports = deepMatches;
 
 
 
