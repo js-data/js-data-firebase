@@ -1,5 +1,8 @@
 // Setup global test variables
-var dsFirebaseAdapter, store, User;
+var dsFirebaseAdapter, store, Profile, User, Post, Comment;
+assert.equalObjects = function (a, b, m) {
+  assert.deepEqual(JSON.parse(JSON.stringify(a)), JSON.parse(JSON.stringify(b)), m || 'Objects should be equal!');
+};
 
 // Helper globals
 var fail = function (msg) {
@@ -38,17 +41,80 @@ beforeEach(function (done) {
     basePath: 'https://js-data-firebase.firebaseio.com'
   });
 
-  store.registerAdapter('DSFirebaseAdapter', dsFirebaseAdapter, { default: true });
+  store.registerAdapter('DSFirebaseAdapter', dsFirebaseAdapter, {default: true});
 
-  User = store.defineResource('user');
+  Profile = store.defineResource({
+    name: 'profile'
+  });
+  User = store.defineResource({
+    name: 'user',
+    relations: {
+      hasMany: {
+        post: {
+          localField: 'posts',
+          foreignKey: 'post'
+        }
+      },
+      hasOne: {
+        profile: {
+          localField: 'profile',
+          localKey: 'profileId'
+        }
+      }
+    }
+  });
+  Post = store.defineResource({
+    name: 'post',
+    relations: {
+      belongsTo: {
+        user: {
+          localField: 'user',
+          localKey: 'userId'
+        }
+      },
+      hasMany: {
+        comment: {
+          localField: 'comments',
+          foreignKey: 'postId'
+        }
+      }
+    }
+  });
+  Comment = store.defineResource({
+    name: 'comment',
+    relations: {
+      belongsTo: {
+        post: {
+          localField: 'post',
+          localKey: 'postId'
+        },
+        user: {
+          localField: 'user',
+          localKey: 'userId'
+        }
+      }
+    }
+  });
 
-  dsFirebaseAdapter.destroyAll(User).then(function () {
+  dsFirebaseAdapter.destroyAll(Profile).then(function () {
+    return dsFirebaseAdapter.destroyAll(User);
+  }).then(function () {
+    return dsFirebaseAdapter.destroyAll(Post);
+  }).then(function () {
+    return dsFirebaseAdapter.destroyAll(Comment);
+  }).then(function () {
     done();
   }).catch(done);
 });
 
 afterEach(function (done) {
-  dsFirebaseAdapter.destroyAll(User).then(function () {
+  dsFirebaseAdapter.destroyAll(Profile).then(function () {
+    return dsFirebaseAdapter.destroyAll(User);
+  }).then(function () {
+    return dsFirebaseAdapter.destroyAll(Post);
+  }).then(function () {
+    return dsFirebaseAdapter.destroyAll(Comment);
+  }).then(function () {
     done();
   }).catch(done);
 });

@@ -1,6 +1,6 @@
 /*!
  * js-data-firebase
- * @version 2.0.0 - Homepage <http://www.js-data.io/docs/dsfirebaseadapter>
+ * @version 2.1.0 - Homepage <http://www.js-data.io/docs/dsfirebaseadapter>
  * @author Jason Dobry <jason.dobry@gmail.com>
  * @copyright (c) 2014-2015 Jason Dobry 
  * @license MIT <https://github.com/js-data/js-data-firebase/blob/master/LICENSE>
@@ -65,19 +65,18 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
+	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
 	var JSData = __webpack_require__(1);
 	var Firebase = __webpack_require__(2);
 	var values = __webpack_require__(3);
+	var map = __webpack_require__(4);
+	var unique = __webpack_require__(5);
 
 	var emptyStore = new JSData.DS();
 	var DSUtils = JSData.DSUtils;
-	var omit = DSUtils.omit;
-	var deepMixIn = DSUtils.deepMixIn;
-	var removeCircular = DSUtils.removeCircular;
-	var forOwn = DSUtils.forOwn;
-
 	var filter = emptyStore.defaults.defaultFilter;
 
 	var Defaults = function Defaults() {
@@ -129,7 +128,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    options = options || {};
 	    this.defaults = new Defaults();
-	    deepMixIn(this.defaults, options);
+	    DSUtils.deepMixIn(this.defaults, options);
 	    this.ref = new Firebase(options.basePath || this.defaults.basePath);
 	  }
 
@@ -144,18 +143,90 @@ return /******/ (function(modules) { // webpackBootstrap
 	    value: function find(resourceConfig, id, options) {
 	      var _this = this;
 
-	      return createTask(function (resolve, reject) {
-	        queueTask(function () {
-	          _this.getRef(resourceConfig, options).child(id).once('value', function (dataSnapshot) {
-	            var item = dataSnapshot.val();
-	            if (!item) {
-	              reject(new Error('Not Found!'));
-	            } else {
-	              item[resourceConfig.idAttribute] = item[resourceConfig.idAttribute] || id;
-	              resolve(item);
-	            }
-	          }, reject, _this);
+	      var instance = undefined;
+	      options = options || {};
+	      options['with'] = options['with'] || [];
+	      return new DSUtils.Promise(function (resolve, reject) {
+	        _this.getRef(resourceConfig, options).child(id).once('value', function (dataSnapshot) {
+	          var item = dataSnapshot.val();
+	          if (!item) {
+	            reject(new Error('Not Found!'));
+	          } else {
+	            item[resourceConfig.idAttribute] = item[resourceConfig.idAttribute] || id;
+	            resolve(item);
+	          }
+	        }, reject, _this);
+	      }).then(function (_instance) {
+	        instance = _instance;
+	        var tasks = [];
+
+	        DSUtils.forEach(resourceConfig.relationList, function (def) {
+	          var relationName = def.relation;
+	          var relationDef = resourceConfig.getResource(relationName);
+	          var containedName = null;
+	          if (DSUtils.contains(options['with'], relationName)) {
+	            containedName = relationName;
+	          } else if (DSUtils.contains(options['with'], def.localField)) {
+	            containedName = def.localField;
+	          }
+	          if (containedName) {
+	            (function () {
+	              var __options = DSUtils.deepMixIn({}, options.orig ? options.orig() : options);
+	              __options = DSUtils._(relationDef, __options);
+	              DSUtils.remove(__options['with'], containedName);
+	              DSUtils.forEach(__options['with'], function (relation, i) {
+	                if (relation && relation.indexOf(containedName) === 0 && relation.length >= containedName.length && relation[containedName.length] === '.') {
+	                  __options['with'][i] = relation.substr(containedName.length + 1);
+	                }
+	              });
+
+	              var task = undefined;
+
+	              if ((def.type === 'hasOne' || def.type === 'hasMany') && def.foreignKey) {
+	                task = _this.findAll(resourceConfig.getResource(relationName), {
+	                  where: _defineProperty({}, def.foreignKey, {
+	                    '==': instance[resourceConfig.idAttribute]
+	                  })
+	                }, __options).then(function (relatedItems) {
+	                  if (def.type === 'hasOne' && relatedItems.length) {
+	                    DSUtils.set(instance, def.localField, relatedItems[0]);
+	                  } else {
+	                    DSUtils.set(instance, def.localField, relatedItems);
+	                  }
+	                  return relatedItems;
+	                });
+	              } else if (def.type === 'hasMany' && def.localKeys) {
+	                var localKeys = [];
+	                var itemKeys = instance[def.localKeys] || [];
+	                itemKeys = Array.isArray(itemKeys) ? itemKeys : DSUtils.keys(itemKeys);
+	                localKeys = localKeys.concat(itemKeys || []);
+	                task = _this.findAll(resourceConfig.getResource(relationName), {
+	                  where: _defineProperty({}, relationDef.idAttribute, {
+	                    'in': DSUtils.filter(unique(localKeys), function (x) {
+	                      return x;
+	                    })
+	                  })
+	                }, __options).then(function (relatedItems) {
+	                  DSUtils.set(instance, def.localField, relatedItems);
+	                  return relatedItems;
+	                });
+	              } else if (def.type === 'belongsTo' || def.type === 'hasOne' && def.localKey) {
+	                task = _this.find(resourceConfig.getResource(relationName), DSUtils.get(instance, def.localKey), __options).then(function (relatedItem) {
+	                  DSUtils.set(instance, def.localField, relatedItem);
+	                  return relatedItem;
+	                });
+	              }
+
+	              if (task) {
+	                tasks.push(task);
+	              }
+	            })();
+	          }
 	        });
+
+	        return DSUtils.Promise.all(tasks);
+	      }).then(function () {
+	        return instance;
 	      });
 	    }
 	  }, {
@@ -163,18 +234,132 @@ return /******/ (function(modules) { // webpackBootstrap
 	    value: function findAll(resourceConfig, params, options) {
 	      var _this2 = this;
 
-	      return createTask(function (resolve, reject) {
-	        queueTask(function () {
-	          _this2.getRef(resourceConfig, options).once('value', function (dataSnapshot) {
-	            var data = dataSnapshot.val();
-	            forOwn(data, function (value, key) {
-	              if (!value[resourceConfig.idAttribute]) {
-	                value[resourceConfig.idAttribute] = '/' + key;
+	      var items = null;
+	      options = options || {};
+	      options['with'] = options['with'] || [];
+	      return new DSUtils.Promise(function (resolve, reject) {
+	        _this2.getRef(resourceConfig, options).once('value', function (dataSnapshot) {
+	          var data = dataSnapshot.val();
+	          DSUtils.forOwn(data, function (value, key) {
+	            if (!value[resourceConfig.idAttribute]) {
+	              value[resourceConfig.idAttribute] = '/' + key;
+	            }
+	          });
+	          resolve(filter.call(emptyStore, values(data), resourceConfig.name, params, options));
+	        }, reject, _this2);
+	      }).then(function (_items) {
+	        items = _items;
+	        var tasks = [];
+	        DSUtils.forEach(resourceConfig.relationList, function (def) {
+	          var relationName = def.relation;
+	          var relationDef = resourceConfig.getResource(relationName);
+	          var containedName = null;
+	          if (DSUtils.contains(options['with'], relationName)) {
+	            containedName = relationName;
+	          } else if (DSUtils.contains(options['with'], def.localField)) {
+	            containedName = def.localField;
+	          }
+	          if (containedName) {
+	            (function () {
+	              var __options = DSUtils.deepMixIn({}, options.orig ? options.orig() : options);
+	              __options['with'] = options['with'].slice();
+	              __options = DSUtils._(relationDef, __options);
+	              DSUtils.remove(__options['with'], containedName);
+
+	              DSUtils.forEach(__options['with'], function (relation, i) {
+	                if (relation && relation.indexOf(containedName) === 0 && relation.length >= containedName.length && relation[containedName.length] === '.') {
+	                  __options['with'][i] = relation.substr(containedName.length + 1);
+	                } else {
+	                  __options['with'][i] = '';
+	                }
+	              });
+
+	              var task = undefined;
+
+	              if ((def.type === 'hasOne' || def.type === 'hasMany') && def.foreignKey) {
+	                task = _this2.findAll(resourceConfig.getResource(relationName), {
+	                  where: _defineProperty({}, def.foreignKey, {
+	                    'in': DSUtils.filter(map(items, function (item) {
+	                      return DSUtils.get(item, resourceConfig.idAttribute);
+	                    }), function (x) {
+	                      return x;
+	                    })
+	                  })
+	                }, __options).then(function (relatedItems) {
+	                  DSUtils.forEach(items, function (item) {
+	                    var attached = [];
+	                    DSUtils.forEach(relatedItems, function (relatedItem) {
+	                      if (DSUtils.get(relatedItem, def.foreignKey) === item[resourceConfig.idAttribute]) {
+	                        attached.push(relatedItem);
+	                      }
+	                    });
+	                    if (def.type === 'hasOne' && attached.length) {
+	                      DSUtils.set(item, def.localField, attached[0]);
+	                    } else {
+	                      DSUtils.set(item, def.localField, attached);
+	                    }
+	                  });
+	                  return relatedItems;
+	                });
+	              } else if (def.type === 'hasMany' && def.localKeys) {
+	                (function () {
+	                  var localKeys = [];
+	                  DSUtils.forEach(items, function (item) {
+	                    var itemKeys = item[def.localKeys] || [];
+	                    itemKeys = Array.isArray(itemKeys) ? itemKeys : DSUtils.keys(itemKeys);
+	                    localKeys = localKeys.concat(itemKeys || []);
+	                  });
+	                  task = _this2.findAll(resourceConfig.getResource(relationName), {
+	                    where: _defineProperty({}, relationDef.idAttribute, {
+	                      'in': DSUtils.filter(unique(localKeys), function (x) {
+	                        return x;
+	                      })
+	                    })
+	                  }, __options).then(function (relatedItems) {
+	                    DSUtils.forEach(items, function (item) {
+	                      var attached = [];
+	                      var itemKeys = item[def.localKeys] || [];
+	                      itemKeys = Array.isArray(itemKeys) ? itemKeys : DSUtils.keys(itemKeys);
+	                      DSUtils.forEach(relatedItems, function (relatedItem) {
+	                        if (itemKeys && DSUtils.contains(itemKeys, relatedItem[relationDef.idAttribute])) {
+	                          attached.push(relatedItem);
+	                        }
+	                      });
+	                      DSUtils.set(item, def.localField, attached);
+	                    });
+	                    return relatedItems;
+	                  });
+	                })();
+	              } else if (def.type === 'belongsTo' || def.type === 'hasOne' && def.localKey) {
+	                task = _this2.findAll(resourceConfig.getResource(relationName), {
+	                  where: _defineProperty({}, relationDef.idAttribute, {
+	                    'in': DSUtils.filter(map(items, function (item) {
+	                      return DSUtils.get(item, def.localKey);
+	                    }), function (x) {
+	                      return x;
+	                    })
+	                  })
+	                }, __options).then(function (relatedItems) {
+	                  DSUtils.forEach(items, function (item) {
+	                    DSUtils.forEach(relatedItems, function (relatedItem) {
+	                      if (relatedItem[relationDef.idAttribute] === item[def.localKey]) {
+	                        DSUtils.set(item, def.localField, relatedItem);
+	                      }
+	                    });
+	                  });
+	                  return relatedItems;
+	                });
 	              }
-	            });
-	            resolve(filter.call(emptyStore, values(data), resourceConfig.name, params, options));
-	          }, reject, _this2);
+
+	              if (task) {
+	                tasks.push(task);
+	              }
+	            })();
+	          }
 	        });
+	        return DSUtils.Promise.all(tasks);
+	      }).then(function () {
+	        return items;
 	      });
 	    }
 	  }, {
@@ -189,7 +374,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        return createTask(function (resolve, reject) {
 	          queueTask(function () {
 	            var resourceRef = _this3.getRef(resourceConfig, options);
-	            var itemRef = resourceRef.push(removeCircular(omit(attrs, resourceConfig.relationFields || [])), function (err) {
+	            var itemRef = resourceRef.push(DSUtils.removeCircular(DSUtils.omit(attrs, resourceConfig.relationFields || [])), function (err) {
 	              if (err) {
 	                return reject(err);
 	              } else {
@@ -220,7 +405,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	      return createTask(function (resolve, reject) {
 	        queueTask(function () {
-	          attrs = removeCircular(omit(attrs || {}, resourceConfig.relationFields || []));
+	          attrs = DSUtils.removeCircular(DSUtils.omit(attrs || {}, resourceConfig.relationFields || []));
 	          var itemRef = _this4.getRef(resourceConfig, options).child(id);
 	          itemRef.once('value', function (dataSnapshot) {
 	            try {
@@ -237,7 +422,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    delete attrs[fields[i]];
 	                  }
 	                }
-	                deepMixIn(item, attrs);
+	                DSUtils.deepMixIn(item, attrs);
 	                if (resourceConfig.relations) {
 	                  fields = resourceConfig.relationFields;
 	                  for (i = 0; i < fields.length; i++) {
@@ -328,7 +513,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 3 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var forOwn = __webpack_require__(4);
+	var forOwn = __webpack_require__(6);
 
 	    /**
 	     * Get object values
@@ -350,8 +535,67 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var hasOwn = __webpack_require__(5);
-	var forIn = __webpack_require__(6);
+	var makeIterator = __webpack_require__(7);
+
+	    /**
+	     * Array map
+	     */
+	    function map(arr, callback, thisObj) {
+	        callback = makeIterator(callback, thisObj);
+	        var results = [];
+	        if (arr == null){
+	            return results;
+	        }
+
+	        var i = -1, len = arr.length;
+	        while (++i < len) {
+	            results[i] = callback(arr[i], i, arr);
+	        }
+
+	        return results;
+	    }
+
+	     module.exports = map;
+
+
+
+/***/ },
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var filter = __webpack_require__(8);
+
+	    /**
+	     * @return {array} Array of unique items
+	     */
+	    function unique(arr, compare){
+	        compare = compare || isEqual;
+	        return filter(arr, function(item, i, arr){
+	            var n = arr.length;
+	            while (++i < n) {
+	                if ( compare(item, arr[i]) ) {
+	                    return false;
+	                }
+	            }
+	            return true;
+	        });
+	    }
+
+	    function isEqual(a, b){
+	        return a === b;
+	    }
+
+	    module.exports = unique;
+
+
+
+
+/***/ },
+/* 6 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var hasOwn = __webpack_require__(9);
+	var forIn = __webpack_require__(10);
 
 	    /**
 	     * Similar to Array/forEach but works over object properties and fixes Don't
@@ -372,7 +616,79 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 5 */
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var identity = __webpack_require__(11);
+	var prop = __webpack_require__(12);
+	var deepMatches = __webpack_require__(13);
+
+	    /**
+	     * Converts argument into a valid iterator.
+	     * Used internally on most array/object/collection methods that receives a
+	     * callback/iterator providing a shortcut syntax.
+	     */
+	    function makeIterator(src, thisObj){
+	        if (src == null) {
+	            return identity;
+	        }
+	        switch(typeof src) {
+	            case 'function':
+	                // function is the first to improve perf (most common case)
+	                // also avoid using `Function#call` if not needed, which boosts
+	                // perf a lot in some cases
+	                return (typeof thisObj !== 'undefined')? function(val, i, arr){
+	                    return src.call(thisObj, val, i, arr);
+	                } : src;
+	            case 'object':
+	                return function(val){
+	                    return deepMatches(val, src);
+	                };
+	            case 'string':
+	            case 'number':
+	                return prop(src);
+	        }
+	    }
+
+	    module.exports = makeIterator;
+
+
+
+
+/***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var makeIterator = __webpack_require__(7);
+
+	    /**
+	     * Array filter
+	     */
+	    function filter(arr, callback, thisObj) {
+	        callback = makeIterator(callback, thisObj);
+	        var results = [];
+	        if (arr == null) {
+	            return results;
+	        }
+
+	        var i = -1, len = arr.length, value;
+	        while (++i < len) {
+	            value = arr[i];
+	            if (callback(value, i, arr)) {
+	                results.push(value);
+	            }
+	        }
+
+	        return results;
+	    }
+
+	    module.exports = filter;
+
+
+
+
+/***/ },
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -390,10 +706,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 6 */
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var hasOwn = __webpack_require__(5);
+	var hasOwn = __webpack_require__(9);
 
 	    var _hasDontEnumBug,
 	        _dontEnums;
@@ -468,6 +784,160 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    module.exports = forIn;
 
+
+
+
+/***/ },
+/* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+
+	    /**
+	     * Returns the first argument provided to it.
+	     */
+	    function identity(val){
+	        return val;
+	    }
+
+	    module.exports = identity;
+
+
+
+
+/***/ },
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+
+	    /**
+	     * Returns a function that gets a property of the passed object
+	     */
+	    function prop(name){
+	        return function(obj){
+	            return obj[name];
+	        };
+	    }
+
+	    module.exports = prop;
+
+
+
+
+/***/ },
+/* 13 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var forOwn = __webpack_require__(6);
+	var isArray = __webpack_require__(14);
+
+	    function containsMatch(array, pattern) {
+	        var i = -1, length = array.length;
+	        while (++i < length) {
+	            if (deepMatches(array[i], pattern)) {
+	                return true;
+	            }
+	        }
+
+	        return false;
+	    }
+
+	    function matchArray(target, pattern) {
+	        var i = -1, patternLength = pattern.length;
+	        while (++i < patternLength) {
+	            if (!containsMatch(target, pattern[i])) {
+	                return false;
+	            }
+	        }
+
+	        return true;
+	    }
+
+	    function matchObject(target, pattern) {
+	        var result = true;
+	        forOwn(pattern, function(val, key) {
+	            if (!deepMatches(target[key], val)) {
+	                // Return false to break out of forOwn early
+	                return (result = false);
+	            }
+	        });
+
+	        return result;
+	    }
+
+	    /**
+	     * Recursively check if the objects match.
+	     */
+	    function deepMatches(target, pattern){
+	        if (target && typeof target === 'object') {
+	            if (isArray(target) && isArray(pattern)) {
+	                return matchArray(target, pattern);
+	            } else {
+	                return matchObject(target, pattern);
+	            }
+	        } else {
+	            return target === pattern;
+	        }
+	    }
+
+	    module.exports = deepMatches;
+
+
+
+
+/***/ },
+/* 14 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var isKind = __webpack_require__(15);
+	    /**
+	     */
+	    var isArray = Array.isArray || function (val) {
+	        return isKind(val, 'Array');
+	    };
+	    module.exports = isArray;
+
+
+
+/***/ },
+/* 15 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var kindOf = __webpack_require__(16);
+	    /**
+	     * Check if value is from a specific "kind".
+	     */
+	    function isKind(val, kind){
+	        return kindOf(val) === kind;
+	    }
+	    module.exports = isKind;
+
+
+
+/***/ },
+/* 16 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+
+	    var _rKind = /^\[object (.*)\]$/,
+	        _toString = Object.prototype.toString,
+	        UNDEF;
+
+	    /**
+	     * Gets the "kind" of value. (e.g. "String", "Number", etc)
+	     */
+	    function kindOf(val) {
+	        if (val === null) {
+	            return 'Null';
+	        } else if (val === UNDEF) {
+	            return 'Undefined';
+	        } else {
+	            return _rKind.exec( _toString.call(val) )[1];
+	        }
+	    }
+	    module.exports = kindOf;
 
 
 
