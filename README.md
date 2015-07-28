@@ -12,6 +12,8 @@ Firebase adapter for [js-data](http://www.js-data.io/).
 
 [js-data-firebase + React](https://js-data-firebase.firebaseapp.com/react/)
 
+[js-data-firebase + Riot](https://js-data-firebase.firebaseapp.com/riot/)
+
 ### Project Status
 
 __Latest Release:__ [![Latest Release](https://img.shields.io/github/release/js-data/js-data-firebase.svg?style=flat-square)](https://github.com/js-data/js-data-firebase/releases)
