@@ -72,8 +72,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	var JSData = __webpack_require__(1);
 	var Firebase = __webpack_require__(2);
 	var values = __webpack_require__(3);
-	var map = __webpack_require__(4);
-	var unique = __webpack_require__(5);
+	var map = __webpack_require__(7);
+	var unique = __webpack_require__(15);
 
 	var emptyStore = new JSData.DS();
 	var DSUtils = JSData.DSUtils;
@@ -381,7 +381,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	              if (err) {
 	                return reject(err);
 	              } else {
-	                var _id = itemRef.toString().replace(resourceRef.toString(), '');
+	                var leadingSlash = '';
+	                if (typeof resourceConfig.idLeadingSlash !== undefined && resourceConfig.idLeadingSlash === false) {
+	                  leadingSlash = '/';
+	                }
+	                var _id = itemRef.toString().replace(resourceRef.toString() + leadingSlash, '');
 	                itemRef.child(resourceConfig.idAttribute).set(_id, function (err) {
 	                  if (err) {
 	                    reject(err);
@@ -502,13 +506,13 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ },
 /* 1 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ function(module, exports) {
 
 	module.exports = __WEBPACK_EXTERNAL_MODULE_1__;
 
 /***/ },
 /* 2 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ function(module, exports) {
 
 	module.exports = __WEBPACK_EXTERNAL_MODULE_2__;
 
@@ -516,7 +520,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 3 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var forOwn = __webpack_require__(8);
+	var forOwn = __webpack_require__(4);
 
 	    /**
 	     * Get object values
@@ -538,139 +542,8 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var makeIterator = __webpack_require__(6);
-
-	    /**
-	     * Array map
-	     */
-	    function map(arr, callback, thisObj) {
-	        callback = makeIterator(callback, thisObj);
-	        var results = [];
-	        if (arr == null){
-	            return results;
-	        }
-
-	        var i = -1, len = arr.length;
-	        while (++i < len) {
-	            results[i] = callback(arr[i], i, arr);
-	        }
-
-	        return results;
-	    }
-
-	     module.exports = map;
-
-
-
-/***/ },
-/* 5 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var filter = __webpack_require__(7);
-
-	    /**
-	     * @return {array} Array of unique items
-	     */
-	    function unique(arr, compare){
-	        compare = compare || isEqual;
-	        return filter(arr, function(item, i, arr){
-	            var n = arr.length;
-	            while (++i < n) {
-	                if ( compare(item, arr[i]) ) {
-	                    return false;
-	                }
-	            }
-	            return true;
-	        });
-	    }
-
-	    function isEqual(a, b){
-	        return a === b;
-	    }
-
-	    module.exports = unique;
-
-
-
-
-/***/ },
-/* 6 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var identity = __webpack_require__(9);
-	var prop = __webpack_require__(10);
-	var deepMatches = __webpack_require__(11);
-
-	    /**
-	     * Converts argument into a valid iterator.
-	     * Used internally on most array/object/collection methods that receives a
-	     * callback/iterator providing a shortcut syntax.
-	     */
-	    function makeIterator(src, thisObj){
-	        if (src == null) {
-	            return identity;
-	        }
-	        switch(typeof src) {
-	            case 'function':
-	                // function is the first to improve perf (most common case)
-	                // also avoid using `Function#call` if not needed, which boosts
-	                // perf a lot in some cases
-	                return (typeof thisObj !== 'undefined')? function(val, i, arr){
-	                    return src.call(thisObj, val, i, arr);
-	                } : src;
-	            case 'object':
-	                return function(val){
-	                    return deepMatches(val, src);
-	                };
-	            case 'string':
-	            case 'number':
-	                return prop(src);
-	        }
-	    }
-
-	    module.exports = makeIterator;
-
-
-
-
-/***/ },
-/* 7 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var makeIterator = __webpack_require__(6);
-
-	    /**
-	     * Array filter
-	     */
-	    function filter(arr, callback, thisObj) {
-	        callback = makeIterator(callback, thisObj);
-	        var results = [];
-	        if (arr == null) {
-	            return results;
-	        }
-
-	        var i = -1, len = arr.length, value;
-	        while (++i < len) {
-	            value = arr[i];
-	            if (callback(value, i, arr)) {
-	                results.push(value);
-	            }
-	        }
-
-	        return results;
-	    }
-
-	    module.exports = filter;
-
-
-
-
-/***/ },
-/* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var hasOwn = __webpack_require__(12);
-	var forIn = __webpack_require__(13);
+	var hasOwn = __webpack_require__(5);
+	var forIn = __webpack_require__(6);
 
 	    /**
 	     * Similar to Array/forEach but works over object properties and fixes Don't
@@ -691,107 +564,8 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 9 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-
-	    /**
-	     * Returns the first argument provided to it.
-	     */
-	    function identity(val){
-	        return val;
-	    }
-
-	    module.exports = identity;
-
-
-
-
-/***/ },
-/* 10 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-
-	    /**
-	     * Returns a function that gets a property of the passed object
-	     */
-	    function prop(name){
-	        return function(obj){
-	            return obj[name];
-	        };
-	    }
-
-	    module.exports = prop;
-
-
-
-
-/***/ },
-/* 11 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var forOwn = __webpack_require__(8);
-	var isArray = __webpack_require__(14);
-
-	    function containsMatch(array, pattern) {
-	        var i = -1, length = array.length;
-	        while (++i < length) {
-	            if (deepMatches(array[i], pattern)) {
-	                return true;
-	            }
-	        }
-
-	        return false;
-	    }
-
-	    function matchArray(target, pattern) {
-	        var i = -1, patternLength = pattern.length;
-	        while (++i < patternLength) {
-	            if (!containsMatch(target, pattern[i])) {
-	                return false;
-	            }
-	        }
-
-	        return true;
-	    }
-
-	    function matchObject(target, pattern) {
-	        var result = true;
-	        forOwn(pattern, function(val, key) {
-	            if (!deepMatches(target[key], val)) {
-	                // Return false to break out of forOwn early
-	                return (result = false);
-	            }
-	        });
-
-	        return result;
-	    }
-
-	    /**
-	     * Recursively check if the objects match.
-	     */
-	    function deepMatches(target, pattern){
-	        if (target && typeof target === 'object') {
-	            if (isArray(target) && isArray(pattern)) {
-	                return matchArray(target, pattern);
-	            } else {
-	                return matchObject(target, pattern);
-	            }
-	        } else {
-	            return target === pattern;
-	        }
-	    }
-
-	    module.exports = deepMatches;
-
-
-
-
-/***/ },
-/* 12 */
-/***/ function(module, exports, __webpack_require__) {
+/* 5 */
+/***/ function(module, exports) {
 
 	
 
@@ -808,10 +582,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 13 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var hasOwn = __webpack_require__(12);
+	var hasOwn = __webpack_require__(5);
 
 	    var _hasDontEnumBug,
 	        _dontEnums;
@@ -890,10 +664,177 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 14 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var isKind = __webpack_require__(15);
+	var makeIterator = __webpack_require__(8);
+
+	    /**
+	     * Array map
+	     */
+	    function map(arr, callback, thisObj) {
+	        callback = makeIterator(callback, thisObj);
+	        var results = [];
+	        if (arr == null){
+	            return results;
+	        }
+
+	        var i = -1, len = arr.length;
+	        while (++i < len) {
+	            results[i] = callback(arr[i], i, arr);
+	        }
+
+	        return results;
+	    }
+
+	     module.exports = map;
+
+
+
+/***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var identity = __webpack_require__(9);
+	var prop = __webpack_require__(10);
+	var deepMatches = __webpack_require__(11);
+
+	    /**
+	     * Converts argument into a valid iterator.
+	     * Used internally on most array/object/collection methods that receives a
+	     * callback/iterator providing a shortcut syntax.
+	     */
+	    function makeIterator(src, thisObj){
+	        if (src == null) {
+	            return identity;
+	        }
+	        switch(typeof src) {
+	            case 'function':
+	                // function is the first to improve perf (most common case)
+	                // also avoid using `Function#call` if not needed, which boosts
+	                // perf a lot in some cases
+	                return (typeof thisObj !== 'undefined')? function(val, i, arr){
+	                    return src.call(thisObj, val, i, arr);
+	                } : src;
+	            case 'object':
+	                return function(val){
+	                    return deepMatches(val, src);
+	                };
+	            case 'string':
+	            case 'number':
+	                return prop(src);
+	        }
+	    }
+
+	    module.exports = makeIterator;
+
+
+
+
+/***/ },
+/* 9 */
+/***/ function(module, exports) {
+
+	
+
+	    /**
+	     * Returns the first argument provided to it.
+	     */
+	    function identity(val){
+	        return val;
+	    }
+
+	    module.exports = identity;
+
+
+
+
+/***/ },
+/* 10 */
+/***/ function(module, exports) {
+
+	
+
+	    /**
+	     * Returns a function that gets a property of the passed object
+	     */
+	    function prop(name){
+	        return function(obj){
+	            return obj[name];
+	        };
+	    }
+
+	    module.exports = prop;
+
+
+
+
+/***/ },
+/* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var forOwn = __webpack_require__(4);
+	var isArray = __webpack_require__(12);
+
+	    function containsMatch(array, pattern) {
+	        var i = -1, length = array.length;
+	        while (++i < length) {
+	            if (deepMatches(array[i], pattern)) {
+	                return true;
+	            }
+	        }
+
+	        return false;
+	    }
+
+	    function matchArray(target, pattern) {
+	        var i = -1, patternLength = pattern.length;
+	        while (++i < patternLength) {
+	            if (!containsMatch(target, pattern[i])) {
+	                return false;
+	            }
+	        }
+
+	        return true;
+	    }
+
+	    function matchObject(target, pattern) {
+	        var result = true;
+	        forOwn(pattern, function(val, key) {
+	            if (!deepMatches(target[key], val)) {
+	                // Return false to break out of forOwn early
+	                return (result = false);
+	            }
+	        });
+
+	        return result;
+	    }
+
+	    /**
+	     * Recursively check if the objects match.
+	     */
+	    function deepMatches(target, pattern){
+	        if (target && typeof target === 'object') {
+	            if (isArray(target) && isArray(pattern)) {
+	                return matchArray(target, pattern);
+	            } else {
+	                return matchObject(target, pattern);
+	            }
+	        } else {
+	            return target === pattern;
+	        }
+	    }
+
+	    module.exports = deepMatches;
+
+
+
+
+/***/ },
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var isKind = __webpack_require__(13);
 	    /**
 	     */
 	    var isArray = Array.isArray || function (val) {
@@ -904,10 +845,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 15 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var kindOf = __webpack_require__(16);
+	var kindOf = __webpack_require__(14);
 	    /**
 	     * Check if value is from a specific "kind".
 	     */
@@ -919,8 +860,8 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 16 */
-/***/ function(module, exports, __webpack_require__) {
+/* 14 */
+/***/ function(module, exports) {
 
 	
 
@@ -941,6 +882,69 @@ return /******/ (function(modules) { // webpackBootstrap
 	        }
 	    }
 	    module.exports = kindOf;
+
+
+
+/***/ },
+/* 15 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var filter = __webpack_require__(16);
+
+	    /**
+	     * @return {array} Array of unique items
+	     */
+	    function unique(arr, compare){
+	        compare = compare || isEqual;
+	        return filter(arr, function(item, i, arr){
+	            var n = arr.length;
+	            while (++i < n) {
+	                if ( compare(item, arr[i]) ) {
+	                    return false;
+	                }
+	            }
+	            return true;
+	        });
+	    }
+
+	    function isEqual(a, b){
+	        return a === b;
+	    }
+
+	    module.exports = unique;
+
+
+
+
+/***/ },
+/* 16 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var makeIterator = __webpack_require__(8);
+
+	    /**
+	     * Array filter
+	     */
+	    function filter(arr, callback, thisObj) {
+	        callback = makeIterator(callback, thisObj);
+	        var results = [];
+	        if (arr == null) {
+	            return results;
+	        }
+
+	        var i = -1, len = arr.length, value;
+	        while (++i < len) {
+	            value = arr[i];
+	            if (callback(value, i, arr)) {
+	                results.push(value);
+	            }
+	        }
+
+	        return results;
+	    }
+
+	    module.exports = filter;
+
 
 
 

@@ -286,7 +286,11 @@ class DSFirebaseAdapter {
             if (err) {
               return reject(err);
             } else {
-              let id = itemRef.toString().replace(resourceRef.toString(), '');
+              let leadingSlash = '';
+              if (typeof resourceConfig.idLeadingSlash !== undefined && resourceConfig.idLeadingSlash === false){
+                leadingSlash = '/';
+              }
+              let id = itemRef.toString().replace(resourceRef.toString() + leadingSlash, '');
               itemRef.child(resourceConfig.idAttribute).set(id, err => {
                 if (err) {
                   reject(err);

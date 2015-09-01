@@ -29,4 +29,22 @@ describe('dsFirebaseAdapter#create', function () {
         assert.deepEqual(user, { id: id, name: 'John' });
       });
   });
+
+  it('should create a user in firebase, created users primary key should have no leading slash', function () {
+
+    UserDiffId = store.defineResource({
+      idAttribute: 'dfid',
+      name: 'user_diff_id',
+    });
+
+    return dsFirebaseAdapter.create(UserDiffId, {name: 'John' })
+      .then(function (user) {
+        assert(user.dfid.charAt(0) === '/');
+        UserDiffId.idLeadingSlash = false;
+        return dsFirebaseAdapter.create(UserDiffId, {name: 'John' })
+      })
+      .then(function(user){
+          assert(user.dfid.charAt(0) !== '/');
+      });
+  });
 });
