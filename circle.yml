@@ -4,5 +4,9 @@ dependencies:
   cache_directories:
     - "bower_components"
 test:
-  post:
-    - grunt coveralls || true
+  override:
+    - npm run ci
+general:
+  artifacts:
+    - "dist"
+    - "coverage"

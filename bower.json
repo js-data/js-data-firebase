@@ -6,22 +6,16 @@
     "type": "git",
     "url": "https://github.com/js-data/js-data-firebase.git"
   },
-  "author": {
-    "name": "Jason Dobry",
-    "url": "http://www.pseudobry.com",
-    "email": "jason.dobry@gmail.com"
-  },
+  "author": "js-data-firebase project authors",
   "main": "./dist/js-data-firebase.js",
   "ignore": [
     ".idea/",
     ".*",
     "*.iml",
     "src/",
-    "lib/",
     "doc/",
-    "guide/",
+    "junit/",
     "coverage/",
-    "Gruntfile.js",
     "node_modules/",
     "test/",
     "package.json",
@@ -29,7 +23,7 @@
     "karma.start.js"
   ],
   "dependencies": {
-    "js-data": ">=2.0.0",
-    "firebase": ">=1.1.x"
+    "js-data": "~3.x",
+    "firebase": ">=2.4.x"
   }
 }

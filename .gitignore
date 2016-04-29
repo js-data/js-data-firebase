@@ -6,3 +6,8 @@ bower_components/
 *.iml
 
 coverage/
+
+npm-debug.log
+junit/
+dist/karma.start.js
+doc/
