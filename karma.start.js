@@ -8,13 +8,14 @@
 window.assert = JSDataAdapterTests.assert
 
 JSDataAdapterTests.init({
-  debug: false,
+  debug: true,
   JSData: JSData,
   Adapter: DSFirebaseAdapter,
   adapterConfig: {
     debug: false,
     basePath: 'https://js-data-firebase-v3.firebaseio.com/'
   },
+  methods:['create'],
   // //js-data-firebase does NOT support these features
   xfeatures: [
     // 'findAllOpNotFound',

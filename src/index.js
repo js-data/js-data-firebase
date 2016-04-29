@@ -2,38 +2,38 @@
 const JSData = require('js-data')
 const Adapter = require('js-data-adapter')
 const guid = require('mout/random/guid')
+const Firebase = require('firebase')
 
-const {
-  Query,
-  utils
-} = JSData
+const {Query, utils} = JSData
 
-function isValidString (value) {
+function isValidString(value) {
   return (value != null && value !== '')
 }
-function join (items, separator) {
+
+function join(items, separator) {
   separator || (separator = '')
   return items.filter(isValidString).join(separator)
 }
-function makePath (...args) {
+
+function makePath(...args) {
   let result = join(args, '/')
   return result.replace(/([^:\/]|^)\/{2,}/g, '$1/')
 }
 let queue = []
 let taskInProcess = false
 
-function enqueue (task) {
+function enqueue(task) {
   queue.push(task)
 }
 
-function dequeue () {
+function dequeue() {
   if (queue.length && !taskInProcess) {
     taskInProcess = true
     queue[0]()
   }
 }
 
-function queueTask (task) {
+function queueTask(task) {
   if (!queue.length) {
     enqueue(task)
     dequeue()
@@ -42,7 +42,7 @@ function queueTask (task) {
   }
 }
 
-function createTask (fn) {
+function createTask(fn) {
   return new Promise(fn).then(function (result) {
     taskInProcess = false
     queue.shift()
@@ -76,13 +76,6 @@ const DEFAULTS = {
    */
   debug: false,
 
-  /**
-   * TODO
-   *
-   * @name DSFirebaseAdapter#storage
-   * @type {Object}
-   * @default localStorage
-   */
   storage: localStorage
 }
 
@@ -102,12 +95,13 @@ const DEFAULTS = {
  * @param {boolean} [opts.debug=false] TODO
  * @param {Object} [opts.storeage=localStorage] TODO
  */
-function DSFirebaseAdapter (opts) {
+function DSFirebaseAdapter(opts) {
   const self = this
   utils.classCallCheck(self, DSFirebaseAdapter)
   opts || (opts = {})
   utils.fillIn(opts, DEFAULTS)
   Adapter.call(self, opts)
+  self.ref = new Firebase(opts.basePath || DEFAULTS.basePath)
 }
 
 // Setup prototype inheritance from Adapter
@@ -116,7 +110,7 @@ DSFirebaseAdapter.prototype = Object.create(Adapter.prototype, {
     value: DSFirebaseAdapter,
     enumerable: false,
     writable: true,
-    configurable: true
+    configurable: true,
   }
 })
 
@@ -151,7 +145,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _count (mapper, query, opts) {
+  _count(mapper, query, opts) {
     const self = this
     return self._findAll(mapper, query, opts).then(function (result) {
       result[0] = result[0].length
@@ -159,7 +153,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     })
   },
 
-  _createHelper (mapper, props, opts) {
+  _createHelper(mapper, props, opts) {
     const self = this
     const _props = {}
     const relationFields = mapper.relationFields || []
@@ -169,12 +163,15 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
       }
     })
     const id = utils.get(_props, mapper.idAttribute) || guid()
+
     utils.set(_props, mapper.idAttribute, id)
     const key = self.getIdPath(mapper, opts, id)
 
     // Create the record
     // TODO: Create related records when the "with" option is provided
-    self.getRef()
+    let resourceRef = self.getRef(mapper, opts)
+
+    resourceRef.push(_props)
     self.storage.setItem(key, utils.toJson(_props))
     self.ensureId(id, mapper, opts)
     return utils.fromJson(self.storage.getItem(key))
@@ -191,11 +188,17 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _create (mapper, props, opts) {
+  _create(mapper, props, opts) {
     const self = this
-    return new Promise(function (resolve) {
-      return resolve([self._createHelper(mapper, props, opts), {}])
-    })
+    debugger;
+    let mapRef = self.getRef();
+    return mapRef.push(props).then((itemRef) => {
+
+      return [itemRef.value, itemRef]
+    });
+    // return new Promise(function (resolve) {
+    //   return resolve([self._createHelper(mapper, props, opts), {}])
+    // })
   },
 
   /**
@@ -210,7 +213,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _createMany (mapper, props, opts) {
+  _createMany(mapper, props, opts) {
     const self = this
     return new Promise(function (resolve) {
       props || (props = [])
@@ -232,7 +235,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _destroy (mapper, id, opts) {
+  _destroy(mapper, id, opts) {
     const self = this
     return new Promise(function (resolve) {
       self.storage.removeItem(self.getIdPath(mapper, opts, id))
@@ -253,7 +256,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _destroyAll (mapper, query, opts) {
+  _destroyAll(mapper, query, opts) {
     const self = this
     return self._findAll(mapper, query).then(function (results) {
       let [records] = results
@@ -283,7 +286,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _find (mapper, id, opts) {
+  _find(mapper, id, opts) {
     const self = this
     return new Promise(function (resolve) {
       const key = self.getIdPath(mapper, opts, id)
@@ -304,7 +307,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _findAll (mapper, query, opts) {
+  _findAll(mapper, query, opts) {
     const self = this
     query || (query = {})
     return new Promise(function (resolve) {
@@ -319,7 +322,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
       })
       const _query = new Query({
         index: {
-          getAll () {
+          getAll() {
             return records
           }
         }
@@ -341,7 +344,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _sum (mapper, field, query, opts) {
+  _sum(mapper, field, query, opts) {
     const self = this
     return self._findAll(mapper, query, opts).then(function (result) {
       let sum = 0
@@ -366,7 +369,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _update (mapper, id, props, opts) {
+  _update(mapper, id, props, opts) {
     const self = this
     props || (props = {})
     return new Promise(function (resolve, reject) {
@@ -395,7 +398,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _updateAll (mapper, props, query, opts) {
+  _updateAll(mapper, props, query, opts) {
     const self = this
     const idAttribute = mapper.idAttribute
     return self._findAll(mapper, query, opts).then(function (results) {
@@ -423,7 +426,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _updateMany (mapper, records, opts) {
+  _updateMany(mapper, records, opts) {
     const self = this
     records || (records = [])
     return new Promise(function (resolve) {
@@ -451,16 +454,24 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     })
   },
 
-  create (mapper, props, opts) {
+  getRef(mapper, opts) {
     const self = this
-    return createTask(function (success, failure) {
-      queueTask(function () {
-        __super__.create.call(self, mapper, props, opts).then(success, failure)
-      })
-    })
+    opts = opts || {}
+    return self.ref.child(opts.endpoint || mapper.endpoint)
   },
 
-  createMany (mapper, props, opts) {
+  create(mapper, props, opts) {
+    const self = this
+    debugger;
+    return __super__.create.call(self, mapper, props, opts)
+    // return createTask(function (success, failure) {
+    //   queueTask(function () {
+    //     __super__.create.call(self, mapper, props, opts).then(success, failure)
+    //   })
+    // })
+  },
+
+  createMany(mapper, props, opts) {
     const self = this
     return createTask(function (success, failure) {
       queueTask(function () {
@@ -469,7 +480,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     })
   },
 
-  destroy (mapper, id, opts) {
+  destroy(mapper, id, opts) {
     const self = this
     return createTask(function (success, failure) {
       queueTask(function () {
@@ -478,7 +489,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     })
   },
 
-  destroyAll (mapper, query, opts) {
+  destroyAll(mapper, query, opts) {
     const self = this
     return createTask(function (success, failure) {
       queueTask(function () {
@@ -493,7 +504,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @name DSFirebaseAdapter#ensureId
    * @method
    */
-  ensureId (id, mapper, opts) {
+  ensureId(id, mapper, opts) {
     const ids = this.getIds(mapper, opts)
     if (utils.isArray(id)) {
       if (!id.length) {
@@ -514,7 +525,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @name DSFirebaseAdapter#getPath
    * @method
    */
-  getPath (mapper, opts) {
+  getPath(mapper, opts) {
     opts = opts || {}
     return makePath(opts.basePath === undefined ? (mapper.basePath === undefined ? this.basePath : mapper.basePath) : opts.basePath, mapper.name)
   },
@@ -525,7 +536,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @name DSFirebaseAdapter#getIdPath
    * @method
    */
-  getIdPath (mapper, opts, id) {
+  getIdPath(mapper, opts, id) {
     opts = opts || {}
     return makePath(opts.basePath || this.basePath || mapper.basePath, mapper.endpoint, id)
   },
@@ -536,7 +547,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @name DSFirebaseAdapter#getIds
    * @method
    */
-  getIds (mapper, opts) {
+  getIds(mapper, opts) {
     let ids
     const idsPath = this.getPath(mapper, opts)
     const idsJson = this.storage.getItem(idsPath)
@@ -554,7 +565,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @name DSFirebaseAdapter#removeId
    * @method
    */
-  removeId (id, mapper, opts) {
+  removeId(id, mapper, opts) {
     const ids = this.getIds(mapper, opts)
     if (utils.isArray(id)) {
       if (!id.length) {
@@ -575,7 +586,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @name DSFirebaseAdapter#saveKeys
    * @method
    */
-  saveKeys (ids, mapper, opts) {
+  saveKeys(ids, mapper, opts) {
     ids = ids || {}
     const idsPath = this.getPath(mapper, opts)
     if (Object.keys(ids).length) {
@@ -585,7 +596,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     }
   },
 
-  update (mapper, id, props, opts) {
+  update(mapper, id, props, opts) {
     const self = this
     return createTask(function (success, failure) {
       queueTask(function () {
@@ -594,7 +605,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     })
   },
 
-  updateAll (mapper, props, query, opts) {
+  updateAll(mapper, props, query, opts) {
     const self = this
     return createTask(function (success, failure) {
       queueTask(function () {
@@ -603,7 +614,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     })
   },
 
-  updateMany (mapper, records, opts) {
+  updateMany(mapper, records, opts) {
     const self = this
     return createTask(function (success, failure) {
       queueTask(function () {

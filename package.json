@@ -41,7 +41,7 @@
 	"scripts": {
 		"bundle": "webpack --config webpack.config.js --colors",
 		"doc": "jsdoc -c conf.json src node_modules/js-data-adapter/src && node scripts/cleanup.js",
-		"lint": "repo-tools lint src/**/*.js karma.start.js karma.conf.js scripts/*.js",
+		"lint": "repo-tools karma.start.js karma.conf.js scripts/*.js",
 		"min": "uglifyjs dist/js-data-firebase.js -o dist/js-data-firebase.min.js --source-map dist/js-data-firebase.min.map --source-map-url js-data-firebase.min.map -v -m -c --screw-ie8",
 		"version": "node scripts/version.js",
 		"banner": "node scripts/banner.js",
@@ -68,7 +68,7 @@
 		"ink-docstrap": "1.1.4",
 		"js-data-adapter": "0.2.4",
 		"js-data-adapter-tests": "^2.0.0-alpha.16",
-		"js-data-repo-tools": "^0.4.0",
+		"js-data-repo-tools": "^0.2.0",
 		"jsdoc": "3.4.0",
 		"karma": "0.13.22",
 		"karma-browserstack-launcher": "0.1.10",
