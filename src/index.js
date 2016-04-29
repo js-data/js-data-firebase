@@ -174,6 +174,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
 
     // Create the record
     // TODO: Create related records when the "with" option is provided
+    self.getRef()
     self.storage.setItem(key, utils.toJson(_props))
     self.ensureId(id, mapper, opts)
     return utils.fromJson(self.storage.getItem(key))

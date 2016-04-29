@@ -13,12 +13,12 @@ JSDataAdapterTests.init({
   Adapter: DSFirebaseAdapter,
   adapterConfig: {
     debug: false,
-    basePath: 'https://js-data-firebase.firebaseio.com'
+    basePath: 'https://js-data-firebase-v3.firebaseio.com/'
   },
   // //js-data-firebase does NOT support these features
   xfeatures: [
-    'findAllOpNotFound',
-    'filterOnRelations'
+    // 'findAllOpNotFound',
+    // 'filterOnRelations'
   ]
 })
 
