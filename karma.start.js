@@ -15,7 +15,7 @@ JSDataAdapterTests.init({
     debug: false,
     basePath: 'https://js-data-firebase-v3.firebaseio.com/'
   },
-  methods:['create'],
+  //methods:['create', 'find'],
   // //js-data-firebase does NOT support these features
   xfeatures: [
     // 'findAllOpNotFound',

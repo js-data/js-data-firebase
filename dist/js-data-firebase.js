@@ -153,7 +153,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * import DSFirebaseAdapter from 'js-data-localstorage'
 	 * const store = new DataStore()
 	 * const adapter = new DSFirebaseAdapter()
-	 * store.registerAdapter('ls', adapter, { 'default': true })
+	 * store.registerAdapter('firebase', adapter, { 'default': true })
 	 *
 	 * @class DSFirebaseAdapter
 	 * @param {Object} [opts] Configuration opts.
@@ -167,7 +167,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  opts || (opts = {});
 	  utils.fillIn(opts, DEFAULTS);
 	  Adapter.call(self, opts);
-	  self.ref = new Firebase(opts.basePath || DEFAULTS.basePath);
+	  self.baseRef = new Firebase(opts.basePath || DEFAULTS.basePath);
 	}
 	
 	// Setup prototype inheritance from Adapter
@@ -219,29 +219,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	      return result;
 	    });
 	  },
-	  _createHelper: function _createHelper(mapper, props, opts) {
-	    var self = this;
-	    var _props = {};
-	    var relationFields = mapper.relationFields || [];
-	    utils.forOwn(props, function (value, key) {
-	      if (relationFields.indexOf(key) === -1) {
-	        _props[key] = value;
-	      }
-	    });
-	    var id = utils.get(_props, mapper.idAttribute) || guid();
-	
-	    utils.set(_props, mapper.idAttribute, id);
-	    var key = self.getIdPath(mapper, opts, id);
-	
-	    // Create the record
-	    // TODO: Create related records when the "with" option is provided
-	    var resourceRef = self.getRef(mapper, opts);
-	
-	    resourceRef.push(_props);
-	    self.storage.setItem(key, utils.toJson(_props));
-	    self.ensureId(id, mapper, opts);
-	    return utils.fromJson(self.storage.getItem(key));
-	  },
 	
 	
 	  /**
@@ -257,15 +234,40 @@ return /******/ (function(modules) { // webpackBootstrap
 	   */
 	  _create: function _create(mapper, props, opts) {
 	    var self = this;
-	    debugger;
-	    var mapRef = self.getRef();
-	    return mapRef.push(props).then(function (itemRef) {
-	
-	      return [itemRef.value, itemRef];
+	    var _props = {};
+	    var relationFields = mapper.relationFields || [];
+	    utils.forOwn(props, function (value, key) {
+	      if (relationFields.indexOf(key) === -1) {
+	        _props[key] = value;
+	      }
 	    });
-	    // return new Promise(function (resolve) {
-	    //   return resolve([self._createHelper(mapper, props, opts), {}])
-	    // })
+	    var id = utils.get(_props, mapper.idAttribute);
+	
+	    if (utils.isString(id) || utils.isNumber()) {
+	      //todo return an update instead of create?
+	      return self.update(mapper, props, opts);
+	    }
+	
+	    var collectionRef = self.getRef(mapper, opts);
+	    var newItemRef = collectionRef.push();
+	
+	    utils.set(_props, mapper.idAttribute, newItemRef.key());
+	    return newItemRef.set(_props).then(function () {
+	      return newItemRef.once('value').then(function (dataSnapshot) {
+	        return [dataSnapshot.val(), newItemRef];
+	      });
+	    });
+	  },
+	  _scrubProps: function _scrubProps(mapper, props) {
+	    var self = this;
+	    var _props = {};
+	    var relationFields = mapper.relationFields || [];
+	    utils.forOwn(props, function (value, key) {
+	      if (relationFields.indexOf(key) === -1) {
+	        _props[key] = value;
+	      }
+	    });
+	    return _props;
 	  },
 	
 	
@@ -277,17 +279,40 @@ return /******/ (function(modules) { // webpackBootstrap
 	   * @method
 	   * @private
 	   * @param {Object} mapper The mapper.
-	   * @param {Object} props The records to be created.
+	   * @param {Object} records The records to be created.
 	   * @param {Object} [opts] Configuration options.
 	   * @return {Promise}
 	   */
-	  _createMany: function _createMany(mapper, props, opts) {
+	  _createMany: function _createMany(mapper, records, opts) {
+	
 	    var self = this;
-	    return new Promise(function (resolve) {
-	      props || (props = []);
-	      return resolve([props.map(function (_props) {
-	        return self._createHelper(mapper, _props, opts);
-	      }), {}]);
+	    var atomicUpdates = {};
+	    var idAttribute = mapper.idAttribute;
+	    var collectionRef = self.getRef(mapper, opts);
+	    var collectionUrl = collectionRef.toString().replace(self.baseRef.toString(), '');
+	    var updateMaps = [];
+	
+	    //generate path for each
+	    records.forEach(function (record) {
+	      var _props = self._scrubProps(mapper, record);
+	      var id = utils.get(_props, idAttribute);
+	      if (!id) {
+	        //get a new FB id
+	        var newItemRef = collectionRef.push();
+	        id = newItemRef.key();
+	        utils.set(_props, idAttribute, id);
+	      }
+	      updateMaps.push({ original: record, scrubbed: _props });
+	      atomicUpdates[makePath(collectionUrl, id)] = _props;
+	    });
+	
+	    //do a deep-path update off the baseRef
+	    //see https://www.firebase.com/blog/2015-09-24-atomic-writes-and-more.html
+	    return self.baseRef.update(atomicUpdates).then(function () {
+	      updateMaps.forEach(function (updateMap) {
+	        utils.deepMixIn(updateMap.original, updateMap.scrubbed);
+	      });
+	      return [records, {}];
 	    });
 	  },
 	
@@ -306,11 +331,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	   */
 	  _destroy: function _destroy(mapper, id, opts) {
 	    var self = this;
-	    return new Promise(function (resolve) {
-	      self.storage.removeItem(self.getIdPath(mapper, opts, id));
-	      self.removeId(id, mapper, opts);
-	      return resolve([undefined, {}]);
-	    });
+	    var ref = self.getRef(mapper, opts).child(id);
+	    return [ref.remove(), ref];
 	  },
 	
 	
@@ -338,12 +360,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	      var ids = records.map(function (record) {
 	        return utils.get(record, idAttribute);
 	      });
-	      // Destroy each record
-	      ids.forEach(function (id) {
-	        self.storage.removeItem(self.getIdPath(mapper, opts, id));
+	
+	      return new Promise(function (resolve) {
+	        props || (props = []);
+	        return resolve([records.map(function (record) {
+	          var id = utils.get(record, idAttribute);
+	          return self._destroy(mapper, id, opts);
+	        }), {}]);
 	      });
-	      self.removeId(ids, mapper, opts);
-	      return [undefined, {}];
 	    });
 	  },
 	
@@ -362,10 +386,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	   */
 	  _find: function _find(mapper, id, opts) {
 	    var self = this;
-	    return new Promise(function (resolve) {
-	      var key = self.getIdPath(mapper, opts, id);
-	      var record = self.storage.getItem(key);
-	      return resolve([record ? utils.fromJson(record) : undefined, {}]);
+	    opts || (opts = {});
+	    var itemRef = self.getRef(mapper, opts).child(id);
+	    return itemRef.once('value').then(function (dataSnapshot) {
+	      return [dataSnapshot.val(), itemRef];
 	    });
 	  },
 	
@@ -385,24 +409,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	  _findAll: function _findAll(mapper, query, opts) {
 	    var self = this;
 	    query || (query = {});
-	    return new Promise(function (resolve) {
-	      // Load all records into memory...
-	      var records = [];
-	      var ids = self.getIds(mapper, opts);
-	      utils.forOwn(ids, function (value, id) {
-	        var json = self.storage.getItem(self.getIdPath(mapper, opts, id));
-	        if (json) {
-	          records.push(utils.fromJson(json));
-	        }
-	      });
-	      var _query = new Query({
-	        index: {
-	          getAll: function getAll() {
-	            return records;
-	          }
-	        }
-	      });
-	      return resolve([_query.filter(query).run(), {}]);
+	    var collectionRef = self.getRef(mapper, opts);
+	    return collectionRef.once('value').then(function (dataSnapshot) {
+	      var items = dataSnapshot.val();
+	      return [items, collectionRef];
 	    });
 	  },
 	
@@ -448,17 +458,20 @@ return /******/ (function(modules) { // webpackBootstrap
 	   */
 	  _update: function _update(mapper, id, props, opts) {
 	    var self = this;
-	    props || (props = {});
-	    return new Promise(function (resolve, reject) {
-	      var key = self.getIdPath(mapper, opts, id);
-	      var record = self.storage.getItem(key);
-	      if (!record) {
-	        return reject(new Error('Not Found'));
+	    var _props = {};
+	    var relationFields = mapper.relationFields || [];
+	    utils.forOwn(props, function (value, key) {
+	      if (relationFields.indexOf(key) === -1) {
+	        _props[key] = value;
 	      }
-	      record = utils.fromJson(record);
-	      utils.deepMixIn(record, props);
-	      self.storage.setItem(key, utils.toJson(record));
-	      return resolve([record, {}]);
+	    });
+	    var itemRef = self.getRef(mapper, opts).child(id);
+	    return itemRef.once('value').then(function (dataSnapshot) {
+	      var item = dataSnapshot.val();
+	      utils.deepMixIn(item, props);
+	      return itemRef.set(item).then(function () {
+	        return [item, itemRef];
+	      });
 	    });
 	  },
 	
@@ -476,24 +489,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	   * @param {Object} [opts] Configuration options.
 	   * @return {Promise}
 	   */
-	  _updateAll: function _updateAll(mapper, props, query, opts) {
-	    var self = this;
-	    var idAttribute = mapper.idAttribute;
-	    return self._findAll(mapper, query, opts).then(function (results) {
-	      var _results2 = _slicedToArray(results, 1);
-	
-	      var records = _results2[0];
-	
-	      records.forEach(function (record) {
-	        record || (record = {});
-	        var id = utils.get(record, idAttribute);
-	        var key = self.getIdPath(mapper, opts, id);
-	        utils.deepMixIn(record, props);
-	        self.storage.setItem(key, utils.toJson(record));
-	      });
-	      return [records, {}];
-	    });
-	  },
+	  _updateAll: function _updateAll(mapper, props, query, opts) {},
 	
 	
 	  /**
@@ -508,47 +504,19 @@ return /******/ (function(modules) { // webpackBootstrap
 	   * @param {Object} [opts] Configuration options.
 	   * @return {Promise}
 	   */
-	  _updateMany: function _updateMany(mapper, records, opts) {
-	    var self = this;
-	    records || (records = []);
-	    return new Promise(function (resolve) {
-	      var updatedRecords = [];
-	      var idAttribute = mapper.idAttribute;
-	      records.forEach(function (record) {
-	        if (!record) {
-	          return;
-	        }
-	        var id = utils.get(record, idAttribute);
-	        if (utils.isUndefined(id)) {
-	          return;
-	        }
-	        var key = self.getIdPath(mapper, opts, id);
-	        var json = self.storage.getItem(key);
-	        if (!json) {
-	          return;
-	        }
-	        var existingRecord = utils.fromJson(json);
-	        utils.deepMixIn(existingRecord, record);
-	        self.storage.setItem(key, utils.toJson(existingRecord));
-	        updatedRecords.push(existingRecord);
-	      });
-	      return resolve([records, {}]);
-	    });
-	  },
+	  _updateMany: function _updateMany(mapper, records, opts) {},
 	  getRef: function getRef(mapper, opts) {
 	    var self = this;
 	    opts = opts || {};
-	    return self.ref.child(opts.endpoint || mapper.endpoint);
+	    return self.baseRef.child(opts.endpoint || mapper.endpoint || mapper.name);
 	  },
 	  create: function create(mapper, props, opts) {
 	    var self = this;
-	    debugger;
-	    return __super__.create.call(self, mapper, props, opts);
-	    // return createTask(function (success, failure) {
-	    //   queueTask(function () {
-	    //     __super__.create.call(self, mapper, props, opts).then(success, failure)
-	    //   })
-	    // })
+	    return createTask(function (success, failure) {
+	      queueTask(function () {
+	        return __super__.create.call(self, mapper, props, opts).then(success, failure);
+	      });
+	    });
 	  },
 	  createMany: function createMany(mapper, props, opts) {
 	    var self = this;
@@ -573,110 +541,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	        __super__.destroyAll.call(self, mapper, query, opts).then(success, failure);
 	      });
 	    });
-	  },
-	
-	
-	  /**
-	   * TODO
-	   *
-	   * @name DSFirebaseAdapter#ensureId
-	   * @method
-	   */
-	  ensureId: function ensureId(id, mapper, opts) {
-	    var ids = this.getIds(mapper, opts);
-	    if (utils.isArray(id)) {
-	      if (!id.length) {
-	        return;
-	      }
-	      id.forEach(function (_id) {
-	        ids[_id] = 1;
-	      });
-	    } else {
-	      ids[id] = 1;
-	    }
-	    this.saveKeys(ids, mapper, opts);
-	  },
-	
-	
-	  /**
-	   * TODO
-	   *
-	   * @name DSFirebaseAdapter#getPath
-	   * @method
-	   */
-	  getPath: function getPath(mapper, opts) {
-	    opts = opts || {};
-	    return makePath(opts.basePath === undefined ? mapper.basePath === undefined ? this.basePath : mapper.basePath : opts.basePath, mapper.name);
-	  },
-	
-	
-	  /**
-	   * TODO
-	   *
-	   * @name DSFirebaseAdapter#getIdPath
-	   * @method
-	   */
-	  getIdPath: function getIdPath(mapper, opts, id) {
-	    opts = opts || {};
-	    return makePath(opts.basePath || this.basePath || mapper.basePath, mapper.endpoint, id);
-	  },
-	
-	
-	  /**
-	   * TODO
-	   *
-	   * @name DSFirebaseAdapter#getIds
-	   * @method
-	   */
-	  getIds: function getIds(mapper, opts) {
-	    var ids = void 0;
-	    var idsPath = this.getPath(mapper, opts);
-	    var idsJson = this.storage.getItem(idsPath);
-	    if (idsJson) {
-	      ids = utils.fromJson(idsJson);
-	    } else {
-	      ids = {};
-	    }
-	    return ids;
-	  },
-	
-	
-	  /**
-	   * TODO
-	   *
-	   * @name DSFirebaseAdapter#removeId
-	   * @method
-	   */
-	  removeId: function removeId(id, mapper, opts) {
-	    var ids = this.getIds(mapper, opts);
-	    if (utils.isArray(id)) {
-	      if (!id.length) {
-	        return;
-	      }
-	      id.forEach(function (_id) {
-	        delete ids[_id];
-	      });
-	    } else {
-	      delete ids[id];
-	    }
-	    this.saveKeys(ids, mapper, opts);
-	  },
-	
-	
-	  /**
-	   * TODO
-	   *
-	   * @name DSFirebaseAdapter#saveKeys
-	   * @method
-	   */
-	  saveKeys: function saveKeys(ids, mapper, opts) {
-	    ids = ids || {};
-	    var idsPath = this.getPath(mapper, opts);
-	    if (Object.keys(ids).length) {
-	      this.storage.setItem(idsPath, utils.toJson(ids));
-	    } else {
-	      this.storage.removeItem(idsPath);
-	    }
 	  },
 	  update: function update(mapper, id, props, opts) {
 	    var self = this;

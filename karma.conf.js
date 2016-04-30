@@ -60,7 +60,7 @@ module.exports = function (config) {
     ],
     reporters: ['dots', 'coverage'],
     preprocessors: {
-      'dist/js-data-firebase.js': ['coverage']
+      //'dist/js-data-firebase.js': ['coverage']
     },
     coverageReporter: {
       type: 'lcov',
@@ -80,6 +80,6 @@ module.exports = function (config) {
     colors: true,
     logLevel: config.LOG_INFO,
     captureTimeout: 90000,
-    singleRun: true
+    singleRun: false
   })
 }
