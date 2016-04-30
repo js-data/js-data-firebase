@@ -234,18 +234,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	   */
 	  _create: function _create(mapper, props, opts) {
 	    var self = this;
-	    var _props = {};
-	    var relationFields = mapper.relationFields || [];
-	    utils.forOwn(props, function (value, key) {
-	      if (relationFields.indexOf(key) === -1) {
-	        _props[key] = value;
-	      }
-	    });
+	    props || (props = {});
+	    var _props = self._scrubProps(mapper, props);
 	    var id = utils.get(_props, mapper.idAttribute);
 	
 	    if (utils.isString(id) || utils.isNumber()) {
-	      //todo return an update instead of create?
-	      return self.update(mapper, props, opts);
+	      //return self._update(mapper, props, opts)
 	    }
 	
 	    var collectionRef = self.getRef(mapper, opts);
@@ -260,6 +254,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 	  _scrubProps: function _scrubProps(mapper, props) {
 	    var self = this;
+	    props || (props = {});
 	    var _props = {};
 	    var relationFields = mapper.relationFields || [];
 	    utils.forOwn(props, function (value, key) {
@@ -268,6 +263,56 @@ return /******/ (function(modules) { // webpackBootstrap
 	      }
 	    });
 	    return _props;
+	  },
+	
+	
+	  /**
+	   * Upsert Helper used for updating or creating records in a single batch.
+	   *
+	   * @name DSFirebaseAdapter#_bulkUpsertHelper
+	   * @method
+	   * @private
+	   * @param {Object} mapper The mapper.
+	   * @param {Object} records The records to be created or updated.
+	   * @param {Object} [opts] Configuration options.
+	   * @return {Promise}
+	   */
+	  _bulkUpsertHelper: function _bulkUpsertHelper(mapper, records, opts, mixin) {
+	    var self = this;
+	    var atomicUpdates = {};
+	    var idAttribute = mapper.idAttribute;
+	    var collectionRef = self.getRef(mapper, opts);
+	    var collectionUrl = collectionRef.toString().replace(self.baseRef.toString(), '');
+	    var updateMaps = [];
+	    mixin || (mixin = {});
+	
+	    //generate path for each
+	    records.forEach(function (record) {
+	      var _props = self._scrubProps(mapper, record);
+	      utils.deepMixIn(_props, mixin);
+	
+	      var id = utils.get(_props, idAttribute);
+	      if (!id) {
+	        //get a new FB id
+	        var newItemRef = collectionRef.push();
+	        id = newItemRef.key();
+	        utils.set(_props, idAttribute, id);
+	      }
+	      //store in the update maps so we can re-map after the update.
+	      updateMaps.push({ original: record, scrubbed: _props });
+	      atomicUpdates[makePath(collectionUrl, id)] = _props;
+	    });
+	
+	    //do a deep-path update off the baseRef
+	    //see https://www.firebase.com/blog/2015-09-24-atomic-writes-and-more.html
+	    return self.baseRef.update(atomicUpdates).then(function () {
+	      //Use the stored update maps and mix in the id's.
+	      //todo Might query them all in order to get any UDF assigned values...
+	      updateMaps.forEach(function (updateMap) {
+	        utils.deepMixIn(updateMap.original, updateMap.scrubbed);
+	      });
+	      return [records, {}];
+	    });
 	  },
 	
 	
@@ -284,36 +329,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	   * @return {Promise}
 	   */
 	  _createMany: function _createMany(mapper, records, opts) {
-	
-	    var self = this;
-	    var atomicUpdates = {};
-	    var idAttribute = mapper.idAttribute;
-	    var collectionRef = self.getRef(mapper, opts);
-	    var collectionUrl = collectionRef.toString().replace(self.baseRef.toString(), '');
-	    var updateMaps = [];
-	
-	    //generate path for each
-	    records.forEach(function (record) {
-	      var _props = self._scrubProps(mapper, record);
-	      var id = utils.get(_props, idAttribute);
-	      if (!id) {
-	        //get a new FB id
-	        var newItemRef = collectionRef.push();
-	        id = newItemRef.key();
-	        utils.set(_props, idAttribute, id);
-	      }
-	      updateMaps.push({ original: record, scrubbed: _props });
-	      atomicUpdates[makePath(collectionUrl, id)] = _props;
-	    });
-	
-	    //do a deep-path update off the baseRef
-	    //see https://www.firebase.com/blog/2015-09-24-atomic-writes-and-more.html
-	    return self.baseRef.update(atomicUpdates).then(function () {
-	      updateMaps.forEach(function (updateMap) {
-	        utils.deepMixIn(updateMap.original, updateMap.scrubbed);
-	      });
-	      return [records, {}];
-	    });
+	    //todo check or enforce upsert?
+	    return self._bulkUpsertHelper(mapper, records, opts);
 	  },
 	
 	
@@ -332,7 +349,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	  _destroy: function _destroy(mapper, id, opts) {
 	    var self = this;
 	    var ref = self.getRef(mapper, opts).child(id);
-	    return [ref.remove(), ref];
+	    return new Promise(function (resolve, reject) {
+	      ref.remove(function (err) {
+	        return reject(err);
+	      });
+	      return resolve([undefined, ref]);
+	    });
 	  },
 	
 	
@@ -350,23 +372,21 @@ return /******/ (function(modules) { // webpackBootstrap
 	   */
 	  _destroyAll: function _destroyAll(mapper, query, opts) {
 	    var self = this;
+	    var collectionRef = self.getRef(mapper, opts);
+	    var collectionUrl = collectionRef.toString().replace(self.baseRef.toString(), '');
+	    var atomicUpdates = {};
+	
 	    return self._findAll(mapper, query).then(function (results) {
 	      var _results = _slicedToArray(results, 1);
 	
 	      var records = _results[0];
 	
-	      var idAttribute = mapper.idAttribute;
-	      // Gather IDs of records to be destroyed
-	      var ids = records.map(function (record) {
-	        return utils.get(record, idAttribute);
+	      records.forEach(function (record) {
+	        var id = utils.get(record, mapper.idAttribute);
+	        atomicUpdates[makePath(collectionUrl, id)] = null;
 	      });
-	
-	      return new Promise(function (resolve) {
-	        props || (props = []);
-	        return resolve([records.map(function (record) {
-	          var id = utils.get(record, idAttribute);
-	          return self._destroy(mapper, id, opts);
-	        }), {}]);
+	      return self.baseRef.update(atomicUpdates).then(function () {
+	        return [undefined, {}];
 	      });
 	    });
 	  },
@@ -393,25 +413,32 @@ return /******/ (function(modules) { // webpackBootstrap
 	    });
 	  },
 	
-	
 	  /**
-	   * Retrieve the records that match the selection query. Internal method used
-	   * by Adapter#findAll.
-	   *
-	   * @name DSFirebaseAdapter#_findAll
-	   * @method
-	   * @private
-	   * @param {Object} mapper The mapper.
-	   * @param {Object} query Selection query.
-	   * @param {Object} [opts] Configuration options.
-	   * @return {Promise}
-	   */
+	    * Retrieve the records that match the selection query. Internal method used
+	    * by Adapter#findAll.
+	    *
+	    * @name DSFirebaseAdapter#_findAll
+	    * @method
+	    * @private
+	    * @param {Object} mapper The mapper.
+	    * @param {Object} query Selection query.
+	    * @param {Object} [opts] Configuration options.
+	    * @return {Promise}
+	    */
 	  _findAll: function _findAll(mapper, query, opts) {
 	    var self = this;
 	    query || (query = {});
 	    var collectionRef = self.getRef(mapper, opts);
 	    return collectionRef.once('value').then(function (dataSnapshot) {
-	      var items = dataSnapshot.val();
+	      var data = dataSnapshot.val();
+	      if (!data) return [[], collectionRef];
+	
+	      utils.forOwn(data, function (value, key) {
+	        if (!value[mapper.idAttribute]) {
+	          value[mapper.idAttribute] = '/' + key;
+	        }
+	      });
+	      var items = Object.values(data);
 	      return [items, collectionRef];
 	    });
 	  },
@@ -458,13 +485,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	   */
 	  _update: function _update(mapper, id, props, opts) {
 	    var self = this;
-	    var _props = {};
-	    var relationFields = mapper.relationFields || [];
-	    utils.forOwn(props, function (value, key) {
-	      if (relationFields.indexOf(key) === -1) {
-	        _props[key] = value;
-	      }
-	    });
+	    props || (props = {});
+	    var _props = self._scrubProps(mapper, props);
+	
 	    var itemRef = self.getRef(mapper, opts).child(id);
 	    return itemRef.once('value').then(function (dataSnapshot) {
 	      var item = dataSnapshot.val();
@@ -489,7 +512,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	   * @param {Object} [opts] Configuration options.
 	   * @return {Promise}
 	   */
-	  _updateAll: function _updateAll(mapper, props, query, opts) {},
+	  _updateAll: function _updateAll(mapper, props, query, opts) {
+	    var self = this;
+	    props || (props = {});
+	    return self._findAll(mapper, query, opts).then(function (records) {
+	      return self._bulkUpsertHelper(mapper, records, opts, props);
+	    });
+	  },
 	
 	
 	  /**
@@ -504,7 +533,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	   * @param {Object} [opts] Configuration options.
 	   * @return {Promise}
 	   */
-	  _updateMany: function _updateMany(mapper, records, opts) {},
+	  _updateMany: function _updateMany(mapper, records, opts) {
+	    return _bulkUpsertHelper(mapper, records, opts);
+	  },
 	  getRef: function getRef(mapper, opts) {
 	    var self = this;
 	    opts = opts || {};
@@ -512,14 +543,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 	  create: function create(mapper, props, opts) {
 	    var self = this;
+	    props || (props = {});
 	    return createTask(function (success, failure) {
 	      queueTask(function () {
-	        return __super__.create.call(self, mapper, props, opts).then(success, failure);
+	        __super__.create.call(self, mapper, props, opts).then(success, failure);
 	      });
 	    });
 	  },
 	  createMany: function createMany(mapper, props, opts) {
 	    var self = this;
+	    props || (props = {});
 	    return createTask(function (success, failure) {
 	      queueTask(function () {
 	        __super__.createMany.call(self, mapper, props, opts).then(success, failure);
@@ -544,6 +577,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 	  update: function update(mapper, id, props, opts) {
 	    var self = this;
+	    props || (props = {});
 	    return createTask(function (success, failure) {
 	      queueTask(function () {
 	        __super__.update.call(self, mapper, id, props, opts).then(success, failure);
@@ -552,6 +586,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 	  updateAll: function updateAll(mapper, props, query, opts) {
 	    var self = this;
+	    props || (props = {});
 	    return createTask(function (success, failure) {
 	      queueTask(function () {
 	        __super__.updateAll.call(self, mapper, props, query, opts).then(success, failure);

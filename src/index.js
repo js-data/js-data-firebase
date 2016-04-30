@@ -166,18 +166,12 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    */
   _create(mapper, props, opts) {
     const self = this
-    const _props = {}
-    const relationFields = mapper.relationFields || []
-    utils.forOwn(props, function (value, key) {
-      if (relationFields.indexOf(key) === -1) {
-        _props[key] = value
-      }
-    })
+    props || (props = {})
+    const _props = self._scrubProps(mapper, props);
     const id = utils.get(_props, mapper.idAttribute);
 
     if (utils.isString(id) || utils.isNumber()) {
-      //todo return an update instead of create?
-      return self.update(mapper, props, opts)
+      //return self._update(mapper, props, opts)
     }
 
     let collectionRef = self.getRef(mapper, opts)
@@ -186,13 +180,14 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     utils.set(_props, mapper.idAttribute, newItemRef.key())
     return newItemRef.set(_props).then(() => {
       return newItemRef.once('value').then(dataSnapshot => {
-        return [dataSnapshot.val(), newItemRef];
+        return [dataSnapshot.val(), newItemRef]
       })
     });
   },
 
   _scrubProps(mapper, props) {
     const self = this
+    props || (props = {})
     const _props = {}
     const relationFields = mapper.relationFields || []
     utils.forOwn(props, function (value, key) {
@@ -214,17 +209,20 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _bulkUpsertHelper(mapper, records, opts) {
+  _bulkUpsertHelper(mapper, records, opts, mixin) {
     const self = this
     const atomicUpdates = {}
     const idAttribute = mapper.idAttribute
     const collectionRef = self.getRef(mapper, opts)
     const collectionUrl = collectionRef.toString().replace(self.baseRef.toString(), '')
     const updateMaps = []
+    mixin || (mixin = {});
 
     //generate path for each
     records.forEach(record => {
       let _props = self._scrubProps(mapper, record)
+      utils.deepMixIn(_props, mixin);
+
       var id = utils.get(_props, idAttribute)
       if (!id) {
         //get a new FB id
@@ -285,7 +283,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
       ref.remove(err => {
         return reject(err);
       })
-      return reslove[undefined, ref];
+      return resolve([undefined, ref]);
     })
   },
 
@@ -303,15 +301,20 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    */
   _destroyAll(mapper, query, opts) {
     const self = this
+    const collectionRef = self.getRef(mapper, opts)
+    const collectionUrl = collectionRef.toString().replace(self.baseRef.toString(), '')
+    const atomicUpdates = {};
+
     return self._findAll(mapper, query).then(results => {
-      let [records] = results
-      var tasks = [];
+      let [records] = results;
       records.forEach(record => {
-        tasks.push(self._destroy(mapper, record[mapper.idAttribute], opts));
-      });
-      return Promise.all(tasks).then(() => {
-        return [undefined, {}]
-      });
+        var id = utils.get(record, mapper.idAttribute)
+        atomicUpdates[makePath(collectionUrl, id)] = null;
+      })
+      debugger;
+      return self.baseRef.update(atomicUpdates).then(() => {
+        return [undefined, {}];
+      })
     })
   },
 
@@ -335,27 +338,32 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
       return [dataSnapshot.val(), itemRef];
     })
   },
-
-
-
   /**
-   * Retrieve the records that match the selection query. Internal method used
-   * by Adapter#findAll.
-   *
-   * @name DSFirebaseAdapter#_findAll
-   * @method
-   * @private
-   * @param {Object} mapper The mapper.
-   * @param {Object} query Selection query.
-   * @param {Object} [opts] Configuration options.
-   * @return {Promise}
-   */
+    * Retrieve the records that match the selection query. Internal method used
+    * by Adapter#findAll.
+    *
+    * @name DSFirebaseAdapter#_findAll
+    * @method
+    * @private
+    * @param {Object} mapper The mapper.
+    * @param {Object} query Selection query.
+    * @param {Object} [opts] Configuration options.
+    * @return {Promise}
+    */
   _findAll(mapper, query, opts) {
     const self = this
     query || (query = {})
     let collectionRef = self.getRef(mapper, opts);
     return collectionRef.once('value').then(dataSnapshot => {
-      let items = dataSnapshot.val();
+      let data = dataSnapshot.val();
+      if (!data) return [[], collectionRef];
+
+      utils.forOwn(data, (value, key) => {
+        if (!value[mapper.idAttribute]) {
+          value[mapper.idAttribute] = `/${key}`;
+        }
+      })
+      let items = Object.values(data)
       return [items, collectionRef];
     });
   },
@@ -400,19 +408,15 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    */
   _update(mapper, id, props, opts) {
     const self = this
-    const _props = {}
-    const relationFields = mapper.relationFields || []
-    utils.forOwn(props, function (value, key) {
-      if (relationFields.indexOf(key) === -1) {
-        _props[key] = value
-      }
-    })
-    let itemRef = self.getRef(mapper, opts).child(id);
+    props || (props = {})
+    const _props = self._scrubProps(mapper, props)
+
+    let itemRef = self.getRef(mapper, opts).child(id)
     return itemRef.once('value').then(dataSnapshot => {
-      let item = dataSnapshot.val();
-      utils.deepMixIn(item, props);
+      let item = dataSnapshot.val()
+      utils.deepMixIn(item, props)
       return itemRef.set(item).then(() => {
-        return [item, itemRef];
+        return [item, itemRef]
       })
     });
   },
@@ -431,6 +435,11 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @return {Promise}
    */
   _updateAll(mapper, props, query, opts) {
+    const self = this
+    props || (props = {})
+    return self._findAll(mapper, query, opts).then(records => {
+      return self._bulkUpsertHelper(mapper, records, opts, props)
+    })
   },
 
   /**
@@ -446,7 +455,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @return {Promise}
    */
   _updateMany(mapper, records, opts) {
-
+    return _bulkUpsertHelper(mapper, records, opts)
   },
 
   getRef(mapper, opts) {
@@ -457,15 +466,17 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
 
   create(mapper, props, opts) {
     const self = this
+    props || (props = {})
     return createTask(function (success, failure) {
       queueTask(function () {
-        return __super__.create.call(self, mapper, props, opts).then(success, failure)
+        __super__.create.call(self, mapper, props, opts).then(success, failure)
       })
     })
   },
 
   createMany(mapper, props, opts) {
     const self = this
+    props || (props = {})
     return createTask(function (success, failure) {
       queueTask(function () {
         __super__.createMany.call(self, mapper, props, opts).then(success, failure)
@@ -493,6 +504,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
 
   update(mapper, id, props, opts) {
     const self = this
+    props || (props = {})
     return createTask(function (success, failure) {
       queueTask(function () {
         __super__.update.call(self, mapper, id, props, opts).then(success, failure)
@@ -502,6 +514,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
 
   updateAll(mapper, props, query, opts) {
     const self = this
+    props || (props = {})
     return createTask(function (success, failure) {
       queueTask(function () {
         __super__.updateAll.call(self, mapper, props, query, opts).then(success, failure)
