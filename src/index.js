@@ -1,39 +1,39 @@
 /* global: localStorage */
 const JSData = require('js-data')
 const Adapter = require('js-data-adapter')
-const guid = require('mout/random/guid')
 const Firebase = require('firebase')
 
 const {Query, utils} = JSData
 
-function isValidString(value) {
+function isValidString (value) {
   return (value != null && value !== '')
 }
 
-function join(items, separator) {
+function join (items, separator) {
   separator || (separator = '')
   return items.filter(isValidString).join(separator)
 }
 
-function makePath(...args) {
+function makePath (...args) { // eslint-disable-line no-unused-vars
   let result = join(args, '/')
   return result.replace(/([^:\/]|^)\/{2,}/g, '$1/')
 }
+
 let queue = []
 let taskInProcess = false
 
-function enqueue(task) {
+function enqueue (task) {
   queue.push(task)
 }
 
-function dequeue() {
+function dequeue () {
   if (queue.length && !taskInProcess) {
     taskInProcess = true
     queue[0]()
   }
 }
 
-function queueTask(task) {
+function queueTask (task) {
   if (!queue.length) {
     enqueue(task)
     dequeue()
@@ -42,7 +42,7 @@ function queueTask(task) {
   }
 }
 
-function createTask(fn) {
+function createTask (fn) {
   return new Promise(fn).then(function (result) {
     taskInProcess = false
     queue.shift()
@@ -65,7 +65,7 @@ const DEFAULTS = {
    * @name DSFirebaseAdapter#basePath
    * @type {string}
    */
-  basePath: '',
+  basePath: 'https://docs-examples.firebaseio.com/samplechat',
 
   /**
    * TODO
@@ -74,9 +74,7 @@ const DEFAULTS = {
    * @type {boolean}
    * @default false
    */
-  debug: false,
-
-  storage: localStorage
+  debug: false
 }
 
 /**
@@ -95,13 +93,21 @@ const DEFAULTS = {
  * @param {boolean} [opts.debug=false] TODO
  * @param {Object} [opts.storeage=localStorage] TODO
  */
-function DSFirebaseAdapter(opts) {
+function DSFirebaseAdapter (opts) {
   const self = this
   utils.classCallCheck(self, DSFirebaseAdapter)
   opts || (opts = {})
   utils.fillIn(opts, DEFAULTS)
   Adapter.call(self, opts)
-  self.baseRef = new Firebase(opts.basePath || DEFAULTS.basePath)
+
+  /**
+   * The ref instance used by this adapter. Use this directly when you
+   * need to write custom queries.
+   *
+   * @name DSFirebaseAdapter#baseRef
+   * @type {Object}
+   */
+  self.baseRef = opts.baseRef || new Firebase(opts.basePath)
 }
 
 // Setup prototype inheritance from Adapter
@@ -110,7 +116,7 @@ DSFirebaseAdapter.prototype = Object.create(Adapter.prototype, {
     value: DSFirebaseAdapter,
     enumerable: false,
     writable: true,
-    configurable: true,
+    configurable: true
   }
 })
 
@@ -145,8 +151,11 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _count(mapper, query, opts) {
+  _count (mapper, query, opts) {
     const self = this
+    opts || (opts = {})
+    query || (query = {})
+
     return self._findAll(mapper, query, opts).then(function (result) {
       result[0] = result[0].length
       return result
@@ -164,87 +173,82 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _create(mapper, props, opts) {
+  _create (mapper, props, opts) {
     const self = this
     props || (props = {})
-    const _props = self._scrubProps(mapper, props);
-    const id = utils.get(_props, mapper.idAttribute);
+    opts || (opts = {})
+    return self._upsert(mapper, props, opts)
+  },
 
-    if (utils.isString(id) || utils.isNumber()) {
-      //return self._update(mapper, props, opts)
+  _upsert (mapper, props, opts) {
+    const self = this
+    props || (props = {})
+    opts || (opts = {})
+
+    const id = utils.get(props, mapper.idAttribute)
+    const collectionRef = self.getRef(mapper, opts)
+
+    let itemRef
+
+    if (utils.isString(id) || utils.isNumber(id)) {
+      itemRef = collectionRef.child(id)
+    } else {
+      itemRef = collectionRef.push()
+      utils.set(props, mapper.idAttribute, itemRef.key())
     }
 
-    let collectionRef = self.getRef(mapper, opts)
-    var newItemRef = collectionRef.push()
-
-    utils.set(_props, mapper.idAttribute, newItemRef.key())
-    return newItemRef.set(_props).then(() => {
-      return newItemRef.once('value').then(dataSnapshot => {
-        return [dataSnapshot.val(), newItemRef]
-      })
-    });
-  },
-
-  _scrubProps(mapper, props) {
-    const self = this
-    props || (props = {})
-    const _props = {}
-    const relationFields = mapper.relationFields || []
-    utils.forOwn(props, function (value, key) {
-      if (relationFields.indexOf(key) === -1) {
-        _props[key] = value
-      }
+    return itemRef.set(props).then(() => {
+      return self._once(itemRef)
     })
-    return _props;
   },
 
-  /**
-   * Upsert Helper used for updating or creating records in a single batch.
-   *
-   * @name DSFirebaseAdapter#_bulkUpsertHelper
-   * @method
-   * @private
-   * @param {Object} mapper The mapper.
-   * @param {Object} records The records to be created or updated.
-   * @param {Object} [opts] Configuration options.
-   * @return {Promise}
-   */
-  _bulkUpsertHelper(mapper, records, opts, mixin) {
+  _upsertBatch (mapper, records, opts) {
     const self = this
-    const atomicUpdates = {}
-    const idAttribute = mapper.idAttribute
+    opts || (opts = {})
+
+    const refValueCollection = []
     const collectionRef = self.getRef(mapper, opts)
-    const collectionUrl = collectionRef.toString().replace(self.baseRef.toString(), '')
-    const updateMaps = []
-    mixin || (mixin = {});
 
-    //generate path for each
-    records.forEach(record => {
-      let _props = self._scrubProps(mapper, record)
-      utils.deepMixIn(_props, mixin);
+    // generate path for each
+    records.forEach((record) => {
+      const id = utils.get(record, mapper.idAttribute)
+      let itemRef
 
-      var id = utils.get(_props, idAttribute)
-      if (!id) {
-        //get a new FB id
-        let newItemRef = collectionRef.push()
-        id = newItemRef.key()
-        utils.set(_props, idAttribute, id)
+      if (utils.isString(id) || utils.isNumber(id)) {
+        itemRef = collectionRef.child(id)
+      } else {
+        itemRef = collectionRef.push()
+        utils.set(record, mapper.idAttribute, itemRef.key())
       }
-      //store in the update maps so we can re-map after the update.
-      updateMaps.push({ original: record, scrubbed: _props })
-      atomicUpdates[makePath(collectionUrl, id)] = _props
+      refValueCollection.push({ ref: itemRef, props: record })
     })
 
-    //do a deep-path update off the baseRef
-    //see https://www.firebase.com/blog/2015-09-24-atomic-writes-and-more.html
-    return self.baseRef.update(atomicUpdates).then(() => {
-      //Use the stored update maps and mix in the id's.
-      //todo Might query them all in order to get any UDF assigned values...
-      updateMaps.forEach(updateMap => {
-        utils.deepMixIn(updateMap.original, updateMap.scrubbed)
+    return self._atomicUpdate(refValueCollection).then(() => {
+      // since UDFs and timestamps can alter values on write, let's get the latest values
+      return utils.Promise.all(refValueCollection.map((item) => {
+        return self._once(item.ref)
+      })).then(() => {
+        // just return the updated records and not the refs?
+        return [refValueCollection.map((item) => item.props), refValueCollection]
       })
-      return [records, {}]
     })
+  },
+
+  _once (ref) {
+    return ref.once('value').then((dataSnapshot) => {
+      return [dataSnapshot.val(), ref]
+    })
+  },
+
+  _atomicUpdate (refValueCollection) { // collection of refs and the new value to set at that ref
+    const self = this
+    // do a deep-path update off the baseRef
+    // see https://www.firebase.com/blog/2015-09-24-atomic-writes-and-more.html
+    let atomicUpdate = {}
+    refValueCollection.forEach((item) => {
+      atomicUpdate[item.ref.toString().replace(self.baseRef.toString())] = item.props
+    })
+    return self.baseRef.update(atomicUpdate)
   },
 
   /**
@@ -259,9 +263,12 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _createMany(mapper, records, opts) {
-    //todo check or enforce upsert?
-    return self._bulkUpsertHelper(mapper, records, opts)
+  _createMany (mapper, records, opts) {
+    // todo check or enforce upsert?
+    const self = this
+    opts || (opts = {})
+
+    return self._upsertBatch(mapper, records, opts)
   },
 
   /**
@@ -276,14 +283,13 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _destroy(mapper, id, opts) {
+  _destroy (mapper, id, opts) {
     const self = this
-    let ref = self.getRef(mapper, opts).child(id);
-    return new Promise((resolve, reject) => {
-      ref.remove(err => {
-        return reject(err);
-      })
-      return resolve([undefined, ref]);
+    opts || (opts = {})
+    let ref = self.getRef(mapper, opts).child(id)
+
+    return ref.remove().then(() => {
+      return [undefined, ref]
     })
   },
 
@@ -299,21 +305,27 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _destroyAll(mapper, query, opts) {
+  _destroyAll (mapper, query, opts) {
     const self = this
-    const collectionRef = self.getRef(mapper, opts)
-    const collectionUrl = collectionRef.toString().replace(self.baseRef.toString(), '')
-    const atomicUpdates = {};
+    opts || (opts = {})
+    query || (query = {})
 
-    return self._findAll(mapper, query).then(results => {
-      let [records] = results;
-      records.forEach(record => {
-        var id = utils.get(record, mapper.idAttribute)
-        atomicUpdates[makePath(collectionUrl, id)] = null;
+    const collectionRef = self.getRef(mapper, opts)
+    const refValueCollection = []
+
+    return self._findAll(mapper, query).then((results) => {
+      let [records] = results
+
+      records.forEach((record) => {
+        const id = utils.get(record, mapper.idAttribute)
+        let itemRef = collectionRef.child(id)
+
+        // push a null value to the location
+        refValueCollection.push({ ref: itemRef, props: null })
       })
-      debugger;
-      return self.baseRef.update(atomicUpdates).then(() => {
-        return [undefined, {}];
+
+      return self._atomicUpdate(refValueCollection).then(() => {
+        return [refValueCollection.map((item) => item.props), refValueCollection]
       })
     })
   },
@@ -330,13 +342,12 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _find(mapper, id, opts) {
+  _find (mapper, id, opts) {
     const self = this
     opts || (opts = {})
+
     let itemRef = self.getRef(mapper, opts).child(id)
-    return itemRef.once('value').then(dataSnapshot => {
-      return [dataSnapshot.val(), itemRef];
-    })
+    return self._once(itemRef)
   },
   /**
     * Retrieve the records that match the selection query. Internal method used
@@ -350,22 +361,32 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     * @param {Object} [opts] Configuration options.
     * @return {Promise}
     */
-  _findAll(mapper, query, opts) {
+  _findAll (mapper, query, opts) {
     const self = this
+    opts || (opts = {})
     query || (query = {})
-    let collectionRef = self.getRef(mapper, opts);
-    return collectionRef.once('value').then(dataSnapshot => {
-      let data = dataSnapshot.val();
-      if (!data) return [[], collectionRef];
 
+    let collectionRef = self.getRef(mapper, opts)
+
+    return collectionRef.once('value').then((dataSnapshot) => {
+      let data = dataSnapshot.val()
+      if (!data) return [[], collectionRef]
       utils.forOwn(data, (value, key) => {
         if (!value[mapper.idAttribute]) {
-          value[mapper.idAttribute] = `/${key}`;
+          value[mapper.idAttribute] = `/${key}`
         }
       })
-      let items = Object.values(data)
-      return [items, collectionRef];
-    });
+
+      let records = Object.values(data)
+      const _query = new Query({
+        index: {
+          getAll () {
+            return records
+          }
+        }
+      })
+      return [_query.filter(query).run(), collectionRef]
+    })
   },
 
   /**
@@ -381,8 +402,11 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _sum(mapper, field, query, opts) {
+  _sum (mapper, field, query, opts) {
     const self = this
+    opts || (opts = {})
+    query || (query = {})
+
     return self._findAll(mapper, query, opts).then(function (result) {
       let sum = 0
       result[0].forEach(function (record) {
@@ -406,19 +430,19 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _update(mapper, id, props, opts) {
+  _update (mapper, id, props, opts) {
     const self = this
     props || (props = {})
-    const _props = self._scrubProps(mapper, props)
+    opts || (opts = {})
 
     let itemRef = self.getRef(mapper, opts).child(id)
-    return itemRef.once('value').then(dataSnapshot => {
-      let item = dataSnapshot.val()
-      utils.deepMixIn(item, props)
-      return itemRef.set(item).then(() => {
-        return [item, itemRef]
+    self._once(itemRef).then((results) => {
+      let currentVal = results[0]
+      utils.deepMixIn(currentVal, props)
+      return itemRef.set(currentVal).then(() => {
+        return self._once(itemRef)
       })
-    });
+    })
   },
 
   /**
@@ -434,11 +458,16 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _updateAll(mapper, props, query, opts) {
+  _updateAll (mapper, props, query, opts) {
     const self = this
+    opts || (opts = {})
     props || (props = {})
-    return self._findAll(mapper, query, opts).then(records => {
-      return self._bulkUpsertHelper(mapper, records, opts, props)
+    query || (query = {})
+
+    return self._findAll(mapper, query, opts).then((results) => {
+      let [records] = results
+      records = records.map((record) => utils.deepMixIn(opts))
+      return self._upsertBatch(mapper, records, opts)
     })
   },
 
@@ -454,17 +483,20 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * @param {Object} [opts] Configuration options.
    * @return {Promise}
    */
-  _updateMany(mapper, records, opts) {
-    return _bulkUpsertHelper(mapper, records, opts)
+  _updateMany (mapper, records, opts) {
+    const self = this
+    opts || (opts = {})
+
+    return self._upsertBatch(mapper, records, opts)
   },
 
-  getRef(mapper, opts) {
+  getRef (mapper, opts) {
     const self = this
     opts = opts || {}
     return self.baseRef.child(opts.endpoint || mapper.endpoint || mapper.name)
   },
 
-  create(mapper, props, opts) {
+  create (mapper, props, opts) {
     const self = this
     props || (props = {})
     return createTask(function (success, failure) {
@@ -474,7 +506,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     })
   },
 
-  createMany(mapper, props, opts) {
+  createMany (mapper, props, opts) {
     const self = this
     props || (props = {})
     return createTask(function (success, failure) {
@@ -484,7 +516,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     })
   },
 
-  destroy(mapper, id, opts) {
+  destroy (mapper, id, opts) {
     const self = this
     return createTask(function (success, failure) {
       queueTask(function () {
@@ -493,7 +525,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     })
   },
 
-  destroyAll(mapper, query, opts) {
+  destroyAll (mapper, query, opts) {
     const self = this
     return createTask(function (success, failure) {
       queueTask(function () {
@@ -502,7 +534,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     })
   },
 
-  update(mapper, id, props, opts) {
+  update (mapper, id, props, opts) {
     const self = this
     props || (props = {})
     return createTask(function (success, failure) {
@@ -512,7 +544,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     })
   },
 
-  updateAll(mapper, props, query, opts) {
+  updateAll (mapper, props, query, opts) {
     const self = this
     props || (props = {})
     return createTask(function (success, failure) {
@@ -522,7 +554,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     })
   },
 
-  updateMany(mapper, records, opts) {
+  updateMany (mapper, records, opts) {
     const self = this
     return createTask(function (success, failure) {
       queueTask(function () {
@@ -531,9 +563,6 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     })
   }
 })
-
-
-
 
 /**
  * Details of the current version of the `js-data-localstorage` module.

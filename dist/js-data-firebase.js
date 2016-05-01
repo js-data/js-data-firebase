@@ -61,8 +61,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	/* global: localStorage */
 	var JSData = __webpack_require__(1);
 	var Adapter = __webpack_require__(2);
-	var guid = __webpack_require__(3);
-	var Firebase = __webpack_require__(14);
+	var Firebase = __webpack_require__(3);
 	
 	var Query = JSData.Query;
 	var utils = JSData.utils;
@@ -82,9 +81,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	    args[_key] = arguments[_key];
 	  }
 	
+	  // eslint-disable-line no-unused-vars
 	  var result = join(args, '/');
 	  return result.replace(/([^:\/]|^)\/{2,}/g, '$1/');
 	}
+	
 	var queue = [];
 	var taskInProcess = false;
 	
@@ -131,7 +132,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	   * @name DSFirebaseAdapter#basePath
 	   * @type {string}
 	   */
-	  basePath: '',
+	  basePath: 'https://docs-examples.firebaseio.com/samplechat',
 	
 	  /**
 	   * TODO
@@ -140,9 +141,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	   * @type {boolean}
 	   * @default false
 	   */
-	  debug: false,
-	
-	  storage: localStorage
+	  debug: false
 	};
 	
 	/**
@@ -167,7 +166,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	  opts || (opts = {});
 	  utils.fillIn(opts, DEFAULTS);
 	  Adapter.call(self, opts);
-	  self.baseRef = new Firebase(opts.basePath || DEFAULTS.basePath);
+	
+	  /**
+	   * The ref instance used by this adapter. Use this directly when you
+	   * need to write custom queries.
+	   *
+	   * @name DSFirebaseAdapter#baseRef
+	   * @type {Object}
+	   */
+	  self.baseRef = opts.baseRef || new Firebase(opts.basePath);
 	}
 	
 	// Setup prototype inheritance from Adapter
@@ -214,6 +221,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	  _count: function _count(mapper, query, opts) {
 	    var self = this;
+	    opts || (opts = {});
+	    query || (query = {});
+	
 	    return self._findAll(mapper, query, opts).then(function (result) {
 	      result[0] = result[0].length;
 	      return result;
@@ -235,84 +245,78 @@ return /******/ (function(modules) { // webpackBootstrap
 	  _create: function _create(mapper, props, opts) {
 	    var self = this;
 	    props || (props = {});
-	    var _props = self._scrubProps(mapper, props);
-	    var id = utils.get(_props, mapper.idAttribute);
-	
-	    if (utils.isString(id) || utils.isNumber()) {
-	      //return self._update(mapper, props, opts)
-	    }
-	
-	    var collectionRef = self.getRef(mapper, opts);
-	    var newItemRef = collectionRef.push();
-	
-	    utils.set(_props, mapper.idAttribute, newItemRef.key());
-	    return newItemRef.set(_props).then(function () {
-	      return newItemRef.once('value').then(function (dataSnapshot) {
-	        return [dataSnapshot.val(), newItemRef];
-	      });
-	    });
+	    opts || (opts = {});
+	    return self._upsert(mapper, props, opts);
 	  },
-	  _scrubProps: function _scrubProps(mapper, props) {
+	  _upsert: function _upsert(mapper, props, opts) {
 	    var self = this;
 	    props || (props = {});
-	    var _props = {};
-	    var relationFields = mapper.relationFields || [];
-	    utils.forOwn(props, function (value, key) {
-	      if (relationFields.indexOf(key) === -1) {
-	        _props[key] = value;
-	      }
-	    });
-	    return _props;
-	  },
+	    opts || (opts = {});
 	
-	
-	  /**
-	   * Upsert Helper used for updating or creating records in a single batch.
-	   *
-	   * @name DSFirebaseAdapter#_bulkUpsertHelper
-	   * @method
-	   * @private
-	   * @param {Object} mapper The mapper.
-	   * @param {Object} records The records to be created or updated.
-	   * @param {Object} [opts] Configuration options.
-	   * @return {Promise}
-	   */
-	  _bulkUpsertHelper: function _bulkUpsertHelper(mapper, records, opts, mixin) {
-	    var self = this;
-	    var atomicUpdates = {};
-	    var idAttribute = mapper.idAttribute;
+	    var id = utils.get(props, mapper.idAttribute);
 	    var collectionRef = self.getRef(mapper, opts);
-	    var collectionUrl = collectionRef.toString().replace(self.baseRef.toString(), '');
-	    var updateMaps = [];
-	    mixin || (mixin = {});
 	
-	    //generate path for each
+	    var itemRef = void 0;
+	
+	    if (utils.isString(id) || utils.isNumber(id)) {
+	      itemRef = collectionRef.child(id);
+	    } else {
+	      itemRef = collectionRef.push();
+	      utils.set(props, mapper.idAttribute, itemRef.key());
+	    }
+	
+	    return itemRef.set(props).then(function () {
+	      return self._once(itemRef);
+	    });
+	  },
+	  _upsertBatch: function _upsertBatch(mapper, records, opts) {
+	    var self = this;
+	    opts || (opts = {});
+	
+	    var refValueCollection = [];
+	    var collectionRef = self.getRef(mapper, opts);
+	
+	    // generate path for each
 	    records.forEach(function (record) {
-	      var _props = self._scrubProps(mapper, record);
-	      utils.deepMixIn(_props, mixin);
+	      var id = utils.get(record, mapper.idAttribute);
+	      var itemRef = void 0;
 	
-	      var id = utils.get(_props, idAttribute);
-	      if (!id) {
-	        //get a new FB id
-	        var newItemRef = collectionRef.push();
-	        id = newItemRef.key();
-	        utils.set(_props, idAttribute, id);
+	      if (utils.isString(id) || utils.isNumber(id)) {
+	        itemRef = collectionRef.child(id);
+	      } else {
+	        itemRef = collectionRef.push();
+	        utils.set(record, mapper.idAttribute, itemRef.key());
 	      }
-	      //store in the update maps so we can re-map after the update.
-	      updateMaps.push({ original: record, scrubbed: _props });
-	      atomicUpdates[makePath(collectionUrl, id)] = _props;
+	      refValueCollection.push({ ref: itemRef, props: record });
 	    });
 	
-	    //do a deep-path update off the baseRef
-	    //see https://www.firebase.com/blog/2015-09-24-atomic-writes-and-more.html
-	    return self.baseRef.update(atomicUpdates).then(function () {
-	      //Use the stored update maps and mix in the id's.
-	      //todo Might query them all in order to get any UDF assigned values...
-	      updateMaps.forEach(function (updateMap) {
-	        utils.deepMixIn(updateMap.original, updateMap.scrubbed);
+	    return self._atomicUpdate(refValueCollection).then(function () {
+	      // since UDFs and timestamps can alter values on write, let's get the latest values
+	      return utils.Promise.all(refValueCollection.map(function (item) {
+	        return self._once(item.ref);
+	      })).then(function () {
+	        // just return the updated records and not the refs?
+	        return [refValueCollection.map(function (item) {
+	          return item.props;
+	        }), refValueCollection];
 	      });
-	      return [records, {}];
 	    });
+	  },
+	  _once: function _once(ref) {
+	    return ref.once('value').then(function (dataSnapshot) {
+	      return [dataSnapshot.val(), ref];
+	    });
+	  },
+	  _atomicUpdate: function _atomicUpdate(refValueCollection) {
+	    // collection of refs and the new value to set at that ref
+	    var self = this;
+	    // do a deep-path update off the baseRef
+	    // see https://www.firebase.com/blog/2015-09-24-atomic-writes-and-more.html
+	    var atomicUpdate = {};
+	    refValueCollection.forEach(function (item) {
+	      atomicUpdate[item.ref.toString().replace(self.baseRef.toString())] = item.props;
+	    });
+	    return self.baseRef.update(atomicUpdate);
 	  },
 	
 	
@@ -329,8 +333,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	   * @return {Promise}
 	   */
 	  _createMany: function _createMany(mapper, records, opts) {
-	    //todo check or enforce upsert?
-	    return self._bulkUpsertHelper(mapper, records, opts);
+	    // todo check or enforce upsert?
+	    var self = this;
+	    opts || (opts = {});
+	
+	    return self._upsertBatch(mapper, records, opts);
 	  },
 	
 	
@@ -348,12 +355,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	   */
 	  _destroy: function _destroy(mapper, id, opts) {
 	    var self = this;
+	    opts || (opts = {});
 	    var ref = self.getRef(mapper, opts).child(id);
-	    return new Promise(function (resolve, reject) {
-	      ref.remove(function (err) {
-	        return reject(err);
-	      });
-	      return resolve([undefined, ref]);
+	
+	    return ref.remove().then(function () {
+	      return [undefined, ref];
 	    });
 	  },
 	
@@ -372,21 +378,30 @@ return /******/ (function(modules) { // webpackBootstrap
 	   */
 	  _destroyAll: function _destroyAll(mapper, query, opts) {
 	    var self = this;
+	    opts || (opts = {});
+	    query || (query = {});
+	
 	    var collectionRef = self.getRef(mapper, opts);
-	    var collectionUrl = collectionRef.toString().replace(self.baseRef.toString(), '');
-	    var atomicUpdates = {};
+	    var refValueCollection = [];
 	
 	    return self._findAll(mapper, query).then(function (results) {
 	      var _results = _slicedToArray(results, 1);
 	
 	      var records = _results[0];
 	
+	
 	      records.forEach(function (record) {
 	        var id = utils.get(record, mapper.idAttribute);
-	        atomicUpdates[makePath(collectionUrl, id)] = null;
+	        var itemRef = collectionRef.child(id);
+	
+	        // push a null value to the location
+	        refValueCollection.push({ ref: itemRef, props: null });
 	      });
-	      return self.baseRef.update(atomicUpdates).then(function () {
-	        return [undefined, {}];
+	
+	      return self._atomicUpdate(refValueCollection).then(function () {
+	        return [refValueCollection.map(function (item) {
+	          return item.props;
+	        }), refValueCollection];
 	      });
 	    });
 	  },
@@ -407,10 +422,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	  _find: function _find(mapper, id, opts) {
 	    var self = this;
 	    opts || (opts = {});
+	
 	    var itemRef = self.getRef(mapper, opts).child(id);
-	    return itemRef.once('value').then(function (dataSnapshot) {
-	      return [dataSnapshot.val(), itemRef];
-	    });
+	    return self._once(itemRef);
 	  },
 	
 	  /**
@@ -427,19 +441,29 @@ return /******/ (function(modules) { // webpackBootstrap
 	    */
 	  _findAll: function _findAll(mapper, query, opts) {
 	    var self = this;
+	    opts || (opts = {});
 	    query || (query = {});
+	
 	    var collectionRef = self.getRef(mapper, opts);
+	
 	    return collectionRef.once('value').then(function (dataSnapshot) {
 	      var data = dataSnapshot.val();
 	      if (!data) return [[], collectionRef];
-	
 	      utils.forOwn(data, function (value, key) {
 	        if (!value[mapper.idAttribute]) {
 	          value[mapper.idAttribute] = '/' + key;
 	        }
 	      });
-	      var items = Object.values(data);
-	      return [items, collectionRef];
+	
+	      var records = Object.values(data);
+	      var _query = new Query({
+	        index: {
+	          getAll: function getAll() {
+	            return records;
+	          }
+	        }
+	      });
+	      return [_query.filter(query).run(), collectionRef];
 	    });
 	  },
 	
@@ -459,6 +483,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	   */
 	  _sum: function _sum(mapper, field, query, opts) {
 	    var self = this;
+	    opts || (opts = {});
+	    query || (query = {});
+	
 	    return self._findAll(mapper, query, opts).then(function (result) {
 	      var sum = 0;
 	      result[0].forEach(function (record) {
@@ -486,14 +513,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	  _update: function _update(mapper, id, props, opts) {
 	    var self = this;
 	    props || (props = {});
-	    var _props = self._scrubProps(mapper, props);
+	    opts || (opts = {});
 	
 	    var itemRef = self.getRef(mapper, opts).child(id);
-	    return itemRef.once('value').then(function (dataSnapshot) {
-	      var item = dataSnapshot.val();
-	      utils.deepMixIn(item, props);
-	      return itemRef.set(item).then(function () {
-	        return [item, itemRef];
+	    self._once(itemRef).then(function (results) {
+	      var currentVal = results[0];
+	      utils.deepMixIn(currentVal, props);
+	      return itemRef.set(currentVal).then(function () {
+	        return self._once(itemRef);
 	      });
 	    });
 	  },
@@ -514,9 +541,19 @@ return /******/ (function(modules) { // webpackBootstrap
 	   */
 	  _updateAll: function _updateAll(mapper, props, query, opts) {
 	    var self = this;
+	    opts || (opts = {});
 	    props || (props = {});
-	    return self._findAll(mapper, query, opts).then(function (records) {
-	      return self._bulkUpsertHelper(mapper, records, opts, props);
+	    query || (query = {});
+	
+	    return self._findAll(mapper, query, opts).then(function (results) {
+	      var _results2 = _slicedToArray(results, 1);
+	
+	      var records = _results2[0];
+	
+	      records = records.map(function (record) {
+	        return utils.deepMixIn(opts);
+	      });
+	      return self._upsertBatch(mapper, records, opts);
 	    });
 	  },
 	
@@ -534,7 +571,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	   * @return {Promise}
 	   */
 	  _updateMany: function _updateMany(mapper, records, opts) {
-	    return _bulkUpsertHelper(mapper, records, opts);
+	    var self = this;
+	    opts || (opts = {});
+	
+	    return self._upsertBatch(mapper, records, opts);
 	  },
 	  getRef: function getRef(mapper, opts) {
 	    var self = this;
@@ -2292,230 +2332,6 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ },
 /* 3 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var randHex = __webpack_require__(4);
-	var choice = __webpack_require__(5);
-	
-	  /**
-	   * Returns pseudo-random guid (UUID v4)
-	   * IMPORTANT: it's not totally "safe" since randHex/choice uses Math.random
-	   * by default and sequences can be predicted in some cases. See the
-	   * "random/random" documentation for more info about it and how to replace
-	   * the default PRNG.
-	   */
-	  function guid() {
-	    return (
-	        randHex(8)+'-'+
-	        randHex(4)+'-'+
-	        // v4 UUID always contain "4" at this position to specify it was
-	        // randomly generated
-	        '4' + randHex(3) +'-'+
-	        // v4 UUID always contain chars [a,b,8,9] at this position
-	        choice(8, 9, 'a', 'b') + randHex(3)+'-'+
-	        randHex(12)
-	    );
-	  }
-	  module.exports = guid;
-	
-
-
-/***/ },
-/* 4 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var choice = __webpack_require__(5);
-	
-	    var _chars = '0123456789abcdef'.split('');
-	
-	    /**
-	     * Returns a random hexadecimal string
-	     */
-	    function randHex(size){
-	        size = size && size > 0? size : 6;
-	        var str = '';
-	        while (size--) {
-	            str += choice(_chars);
-	        }
-	        return str;
-	    }
-	
-	    module.exports = randHex;
-	
-	
-
-
-/***/ },
-/* 5 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var randInt = __webpack_require__(6);
-	var isArray = __webpack_require__(11);
-	
-	    /**
-	     * Returns a random element from the supplied arguments
-	     * or from the array (if single argument is an array).
-	     */
-	    function choice(items) {
-	        var target = (arguments.length === 1 && isArray(items))? items : arguments;
-	        return target[ randInt(0, target.length - 1) ];
-	    }
-	
-	    module.exports = choice;
-	
-	
-
-
-/***/ },
-/* 6 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var MIN_INT = __webpack_require__(7);
-	var MAX_INT = __webpack_require__(8);
-	var rand = __webpack_require__(9);
-	
-	    /**
-	     * Gets random integer inside range or snap to min/max values.
-	     */
-	    function randInt(min, max){
-	        min = min == null? MIN_INT : ~~min;
-	        max = max == null? MAX_INT : ~~max;
-	        // can't be max + 0.5 otherwise it will round up if `rand`
-	        // returns `max` causing it to overflow range.
-	        // -0.5 and + 0.49 are required to avoid bias caused by rounding
-	        return Math.round( rand(min - 0.5, max + 0.499999999999) );
-	    }
-	
-	    module.exports = randInt;
-	
-
-
-/***/ },
-/* 7 */
-/***/ function(module, exports) {
-
-	/**
-	 * @constant Minimum 32-bit signed integer value (-2^31).
-	 */
-	
-	    module.exports = -2147483648;
-	
-
-
-/***/ },
-/* 8 */
-/***/ function(module, exports) {
-
-	/**
-	 * @constant Maximum 32-bit signed integer value. (2^31 - 1)
-	 */
-	
-	    module.exports = 2147483647;
-	
-
-
-/***/ },
-/* 9 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var random = __webpack_require__(10);
-	var MIN_INT = __webpack_require__(7);
-	var MAX_INT = __webpack_require__(8);
-	
-	    /**
-	     * Returns random number inside range
-	     */
-	    function rand(min, max){
-	        min = min == null? MIN_INT : min;
-	        max = max == null? MAX_INT : max;
-	        return min + (max - min) * random();
-	    }
-	
-	    module.exports = rand;
-	
-
-
-/***/ },
-/* 10 */
-/***/ function(module, exports) {
-
-	
-	
-	    /**
-	     * Just a wrapper to Math.random. No methods inside mout/random should call
-	     * Math.random() directly so we can inject the pseudo-random number
-	     * generator if needed (ie. in case we need a seeded random or a better
-	     * algorithm than the native one)
-	     */
-	    function random(){
-	        return random.get();
-	    }
-	
-	    // we expose the method so it can be swapped if needed
-	    random.get = Math.random;
-	
-	    module.exports = random;
-	
-	
-
-
-/***/ },
-/* 11 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var isKind = __webpack_require__(12);
-	    /**
-	     */
-	    var isArray = Array.isArray || function (val) {
-	        return isKind(val, 'Array');
-	    };
-	    module.exports = isArray;
-	
-
-
-/***/ },
-/* 12 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var kindOf = __webpack_require__(13);
-	    /**
-	     * Check if value is from a specific "kind".
-	     */
-	    function isKind(val, kind){
-	        return kindOf(val) === kind;
-	    }
-	    module.exports = isKind;
-	
-
-
-/***/ },
-/* 13 */
-/***/ function(module, exports) {
-
-	
-	
-	    var _rKind = /^\[object (.*)\]$/,
-	        _toString = Object.prototype.toString,
-	        UNDEF;
-	
-	    /**
-	     * Gets the "kind" of value. (e.g. "String", "Number", etc)
-	     */
-	    function kindOf(val) {
-	        if (val === null) {
-	            return 'Null';
-	        } else if (val === UNDEF) {
-	            return 'Undefined';
-	        } else {
-	            return _rKind.exec( _toString.call(val) )[1];
-	        }
-	    }
-	    module.exports = kindOf;
-	
-
-
-/***/ },
-/* 14 */
 /***/ function(module, exports) {
 
 	/*! @license Firebase v2.4.2
