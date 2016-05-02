@@ -48,6 +48,12 @@ module.exports = function (config) {
       'karma-coverage',
       'karma-browserstack-launcher'
     ],
+    client: {
+      mocha: {
+        // reporter: 'html', // change Karma's debug.html to the mocha web reporter
+        timeout: 10000 // had to increase the delay due to timeouts with firebase
+      }
+    },
     autoWatch: false,
     autoWatchBatchDelay: 4000,
     browsers: browsers,
@@ -80,6 +86,6 @@ module.exports = function (config) {
     colors: true,
     logLevel: config.LOG_INFO,
     captureTimeout: 90000,
-    singleRun: false
+    singleRun: true
   })
 }

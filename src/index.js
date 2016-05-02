@@ -182,10 +182,10 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
 
   _upsert (mapper, props, opts) {
     const self = this
-    props || (props = {})
+    const _props = utils.copy(props)
     opts || (opts = {})
 
-    const id = utils.get(props, mapper.idAttribute)
+    const id = utils.get(_props, mapper.idAttribute)
     const collectionRef = self.getRef(mapper, opts)
 
     let itemRef
@@ -194,11 +194,16 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
       itemRef = collectionRef.child(id)
     } else {
       itemRef = collectionRef.push()
-      utils.set(props, mapper.idAttribute, itemRef.key())
+      utils.set(_props, mapper.idAttribute, itemRef.key())
     }
 
-    return itemRef.set(props).then(() => {
-      return self._once(itemRef)
+    return itemRef.set(_props).then(() => {
+      return self._once(itemRef).then((record) => {
+        if (!record) {
+          throw new Error('Not Found')
+        }
+        return [record, itemRef]
+      })
     })
   },
 
@@ -212,21 +217,24 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     // generate path for each
     records.forEach((record) => {
       const id = utils.get(record, mapper.idAttribute)
+      let _props = utils.copy(record)
       let itemRef
 
       if (utils.isString(id) || utils.isNumber(id)) {
         itemRef = collectionRef.child(id)
       } else {
         itemRef = collectionRef.push()
-        utils.set(record, mapper.idAttribute, itemRef.key())
+        utils.set(_props, mapper.idAttribute, itemRef.key())
       }
-      refValueCollection.push({ ref: itemRef, props: record })
+      refValueCollection.push({ ref: itemRef, props: _props })
     })
 
     return self._atomicUpdate(refValueCollection).then(() => {
       // since UDFs and timestamps can alter values on write, let's get the latest values
       return utils.Promise.all(refValueCollection.map((item) => {
-        return self._once(item.ref)
+        return self._once(item.ref).then((record) => {
+          return [record, item.ref]
+        })
       })).then(() => {
         // just return the updated records and not the refs?
         return [refValueCollection.map((item) => item.props), refValueCollection]
@@ -236,7 +244,10 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
 
   _once (ref) {
     return ref.once('value').then((dataSnapshot) => {
-      return [dataSnapshot.val(), ref]
+      if (!dataSnapshot.exists()) {
+        return null
+      }
+      return dataSnapshot.val()
     })
   },
 
@@ -246,7 +257,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     // see https://www.firebase.com/blog/2015-09-24-atomic-writes-and-more.html
     let atomicUpdate = {}
     refValueCollection.forEach((item) => {
-      atomicUpdate[item.ref.toString().replace(self.baseRef.toString())] = item.props
+      atomicUpdate[item.ref.toString().replace(self.baseRef.toString(), '')] = item.props
     })
     return self.baseRef.update(atomicUpdate)
   },
@@ -310,22 +321,13 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     opts || (opts = {})
     query || (query = {})
 
-    const collectionRef = self.getRef(mapper, opts)
-    const refValueCollection = []
-
     return self._findAll(mapper, query).then((results) => {
       let [records] = results
-
-      records.forEach((record) => {
+      return utils.Promise.all(records.map((record) => {
         const id = utils.get(record, mapper.idAttribute)
-        let itemRef = collectionRef.child(id)
-
-        // push a null value to the location
-        refValueCollection.push({ ref: itemRef, props: null })
-      })
-
-      return self._atomicUpdate(refValueCollection).then(() => {
-        return [refValueCollection.map((item) => item.props), refValueCollection]
+        return self._destroy(mapper, id, opts)
+      })).then(() => {
+        return [undefined, {}]
       })
     })
   },
@@ -347,7 +349,9 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     opts || (opts = {})
 
     let itemRef = self.getRef(mapper, opts).child(id)
-    return self._once(itemRef)
+    return self._once(itemRef).then((record) => {
+      return [record, itemRef]
+    })
   },
   /**
     * Retrieve the records that match the selection query. Internal method used
@@ -371,11 +375,6 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     return collectionRef.once('value').then((dataSnapshot) => {
       let data = dataSnapshot.val()
       if (!data) return [[], collectionRef]
-      utils.forOwn(data, (value, key) => {
-        if (!value[mapper.idAttribute]) {
-          value[mapper.idAttribute] = `/${key}`
-        }
-      })
 
       let records = Object.values(data)
       const _query = new Query({
@@ -385,7 +384,9 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
           }
         }
       })
-      return [_query.filter(query).run(), collectionRef]
+      var filtered = _query.filter(query).run()
+      console.info(records, query, filtered)
+      return [filtered, collectionRef]
     })
   },
 
@@ -436,11 +437,18 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     opts || (opts = {})
 
     let itemRef = self.getRef(mapper, opts).child(id)
-    self._once(itemRef).then((results) => {
-      let currentVal = results[0]
+    return self._once(itemRef).then((currentVal) => {
+      if (!currentVal) {
+        throw new Error('Not Found')
+      }
       utils.deepMixIn(currentVal, props)
       return itemRef.set(currentVal).then(() => {
-        return self._once(itemRef)
+        return self._once(itemRef).then((record) => {
+          if (!record) {
+            throw new Error('Not Found')
+          }
+          return [record, itemRef]
+        })
       })
     })
   },
@@ -466,7 +474,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
 
     return self._findAll(mapper, query, opts).then((results) => {
       let [records] = results
-      records = records.map((record) => utils.deepMixIn(opts))
+      records = records.map((record) => utils.deepMixIn(record, props))
       return self._upsertBatch(mapper, records, opts)
     })
   },

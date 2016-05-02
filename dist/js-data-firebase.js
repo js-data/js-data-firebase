@@ -4,9 +4,9 @@
 	else if(typeof define === 'function' && define.amd)
 		define(["js-data"], factory);
 	else if(typeof exports === 'object')
-		exports["DSFirebaseAdapter"] = factory(require("js-data"));
+		exports["FirebaseAdapter"] = factory(require("js-data"));
 	else
-		root["DSFirebaseAdapter"] = factory(root["JSData"]);
+		root["FirebaseAdapter"] = factory(root["JSData"]);
 })(this, function(__WEBPACK_EXTERNAL_MODULE_1__) {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
@@ -250,10 +250,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 	  _upsert: function _upsert(mapper, props, opts) {
 	    var self = this;
-	    props || (props = {});
+	    var _props = utils.copy(props);
 	    opts || (opts = {});
 	
-	    var id = utils.get(props, mapper.idAttribute);
+	    var id = utils.get(_props, mapper.idAttribute);
 	    var collectionRef = self.getRef(mapper, opts);
 	
 	    var itemRef = void 0;
@@ -262,11 +262,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	      itemRef = collectionRef.child(id);
 	    } else {
 	      itemRef = collectionRef.push();
-	      utils.set(props, mapper.idAttribute, itemRef.key());
+	      utils.set(_props, mapper.idAttribute, itemRef.key());
 	    }
 	
-	    return itemRef.set(props).then(function () {
-	      return self._once(itemRef);
+	    return itemRef.set(_props).then(function () {
+	      return self._once(itemRef).then(function (record) {
+	        if (!record) {
+	          throw new Error('Not Found');
+	        }
+	        return [record, itemRef];
+	      });
 	    });
 	  },
 	  _upsertBatch: function _upsertBatch(mapper, records, opts) {
@@ -279,21 +284,24 @@ return /******/ (function(modules) { // webpackBootstrap
 	    // generate path for each
 	    records.forEach(function (record) {
 	      var id = utils.get(record, mapper.idAttribute);
+	      var _props = utils.copy(record);
 	      var itemRef = void 0;
 	
 	      if (utils.isString(id) || utils.isNumber(id)) {
 	        itemRef = collectionRef.child(id);
 	      } else {
 	        itemRef = collectionRef.push();
-	        utils.set(record, mapper.idAttribute, itemRef.key());
+	        utils.set(_props, mapper.idAttribute, itemRef.key());
 	      }
-	      refValueCollection.push({ ref: itemRef, props: record });
+	      refValueCollection.push({ ref: itemRef, props: _props });
 	    });
 	
 	    return self._atomicUpdate(refValueCollection).then(function () {
 	      // since UDFs and timestamps can alter values on write, let's get the latest values
 	      return utils.Promise.all(refValueCollection.map(function (item) {
-	        return self._once(item.ref);
+	        return self._once(item.ref).then(function (record) {
+	          return [record, item.ref];
+	        });
 	      })).then(function () {
 	        // just return the updated records and not the refs?
 	        return [refValueCollection.map(function (item) {
@@ -304,7 +312,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 	  _once: function _once(ref) {
 	    return ref.once('value').then(function (dataSnapshot) {
-	      return [dataSnapshot.val(), ref];
+	      if (!dataSnapshot.exists()) {
+	        return null;
+	      }
+	      return dataSnapshot.val();
 	    });
 	  },
 	  _atomicUpdate: function _atomicUpdate(refValueCollection) {
@@ -314,7 +325,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    // see https://www.firebase.com/blog/2015-09-24-atomic-writes-and-more.html
 	    var atomicUpdate = {};
 	    refValueCollection.forEach(function (item) {
-	      atomicUpdate[item.ref.toString().replace(self.baseRef.toString())] = item.props;
+	      atomicUpdate[item.ref.toString().replace(self.baseRef.toString(), '')] = item.props;
 	    });
 	    return self.baseRef.update(atomicUpdate);
 	  },
@@ -381,27 +392,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	    opts || (opts = {});
 	    query || (query = {});
 	
-	    var collectionRef = self.getRef(mapper, opts);
-	    var refValueCollection = [];
-	
 	    return self._findAll(mapper, query).then(function (results) {
 	      var _results = _slicedToArray(results, 1);
 	
 	      var records = _results[0];
 	
-	
-	      records.forEach(function (record) {
+	      return utils.Promise.all(records.map(function (record) {
 	        var id = utils.get(record, mapper.idAttribute);
-	        var itemRef = collectionRef.child(id);
-	
-	        // push a null value to the location
-	        refValueCollection.push({ ref: itemRef, props: null });
-	      });
-	
-	      return self._atomicUpdate(refValueCollection).then(function () {
-	        return [refValueCollection.map(function (item) {
-	          return item.props;
-	        }), refValueCollection];
+	        return self._destroy(mapper, id, opts);
+	      })).then(function () {
+	        return [undefined, {}];
 	      });
 	    });
 	  },
@@ -424,7 +424,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	    opts || (opts = {});
 	
 	    var itemRef = self.getRef(mapper, opts).child(id);
-	    return self._once(itemRef);
+	    return self._once(itemRef).then(function (record) {
+	      return [record, itemRef];
+	    });
 	  },
 	
 	  /**
@@ -449,11 +451,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    return collectionRef.once('value').then(function (dataSnapshot) {
 	      var data = dataSnapshot.val();
 	      if (!data) return [[], collectionRef];
-	      utils.forOwn(data, function (value, key) {
-	        if (!value[mapper.idAttribute]) {
-	          value[mapper.idAttribute] = '/' + key;
-	        }
-	      });
 	
 	      var records = Object.values(data);
 	      var _query = new Query({
@@ -463,7 +460,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	          }
 	        }
 	      });
-	      return [_query.filter(query).run(), collectionRef];
+	      var filtered = _query.filter(query).run();
+	      console.info(records, query, filtered);
+	      return [filtered, collectionRef];
 	    });
 	  },
 	
@@ -516,11 +515,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	    opts || (opts = {});
 	
 	    var itemRef = self.getRef(mapper, opts).child(id);
-	    self._once(itemRef).then(function (results) {
-	      var currentVal = results[0];
+	    return self._once(itemRef).then(function (currentVal) {
+	      if (!currentVal) {
+	        throw new Error('Not Found');
+	      }
 	      utils.deepMixIn(currentVal, props);
 	      return itemRef.set(currentVal).then(function () {
-	        return self._once(itemRef);
+	        return self._once(itemRef).then(function (record) {
+	          if (!record) {
+	            throw new Error('Not Found');
+	          }
+	          return [record, itemRef];
+	        });
 	      });
 	    });
 	  },
@@ -551,7 +557,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      var records = _results2[0];
 	
 	      records = records.map(function (record) {
-	        return utils.deepMixIn(opts);
+	        return utils.deepMixIn(record, props);
 	      });
 	      return self._upsertBatch(mapper, records, opts);
 	    });

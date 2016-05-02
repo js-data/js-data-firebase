@@ -2,7 +2,7 @@
   "name": "js-data-firebase",
   "description": "Firebase adapter for js-data.",
   "version": "3.0.0-alpha.1",
-  "homepage": "http://www.js-data.io/docs/dsfirebaseadapter",
+  "homepage": "http://www.js-data.io/docs/firebaseadapter",
   "repository": {
     "type": "git",
     "url": "https://github.com/js-data/js-data-firebase.git"
@@ -44,7 +44,7 @@
       "it",
       "JSData",
       "localStorage",
-      "DSFirebaseAdapter"
+      "FirebaseAdapter"
     ]
   },
   "watch": {

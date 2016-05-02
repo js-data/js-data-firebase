@@ -1,3 +1,6 @@
+##### 3.0.0-alpha.1 - 05 May 2016
+- Alpha Version 3.0.0-alpha.1
+
 ##### 2.1.1 - 10 July 2015
 
 ###### Backwards compatible bug fixes
