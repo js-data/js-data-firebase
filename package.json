@@ -2,17 +2,20 @@
   "name": "js-data-firebase",
   "description": "Firebase adapter for js-data.",
   "version": "3.0.0-alpha.1",
-  "homepage": "http://www.js-data.io/docs/firebaseadapter",
+  "homepage": "https://github.com/js-data/js-data-firebase",
   "repository": {
     "type": "git",
     "url": "https://github.com/js-data/js-data-firebase.git"
   },
   "author": "js-data-firebase project authors",
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "https://github.com/js-data/js-data-firebase/blob/master/LICENSE"
-    }
+  "license": "MIT",
+  "main": "./dist/js-data-firebase.js",
+  "typings": "./dist/js-data-firebase.d.ts",
+  "files": [
+    "dist/",
+    "src/",
+    "AUTHORS",
+    "CONTRIBUTORS"
   ],
   "keywords": [
     "data",
@@ -24,18 +27,8 @@
     "JSData",
     "firebase"
   ],
-  "main": "./dist/js-data-firebase.js",
   "standard": {
     "parser": "babel-eslint",
-    "rules": {
-      "no-unused-vars": [
-        2,
-        {
-          "vars": "all",
-          "args": "none"
-        }
-      ]
-    },
     "globals": [
       "beforeEach",
       "describe",
@@ -43,59 +36,55 @@
       "JSDataAdapterTests",
       "it",
       "JSData",
-      "localStorage",
       "FirebaseAdapter"
+    ],
+    "ignore": [
+      "dist/",
+      "example/"
     ]
   },
-  "watch": {
-    "bundle": "{src,test}/*.js"
+  "babel": {
+    "presets": [
+      "es2015-rollup"
+    ]
   },
   "scripts": {
-    "bundle": "webpack --config webpack.config.js --colors",
-    "bundle:watch": "npm-watch",
-    "doc": "jsdoc -c conf.json src node_modules/js-data-adapter/src && node scripts/cleanup.js",
-    "lint": "repo-tools lint src/**/*.js karma.start.js karma.conf.js scripts/*.js",
+    "lint": "repo-tools lint \"**/*.js\"",
+    "bundle": "rollup src/index.js -c -o dist/js-data-firebase.js -m dist/js-data-firebase.js.map -f umd && repo-tools write-version dist/js-data-firebase.js",
+    "doc": "jsdoc -c conf.json src node_modules/js-data-adapter/src",
     "min": "uglifyjs dist/js-data-firebase.js -o dist/js-data-firebase.min.js --source-map dist/js-data-firebase.min.map --source-map-url js-data-firebase.min.map -v -m -c --screw-ie8",
-    "version": "node scripts/version.js",
     "banner": "node scripts/banner.js",
-    "gzip": "echo gzipped size: $(cat dist/js-data-firebase.min.js | gzip -f9 | wc -c)kb",
-    "build": "npm run lint && npm run bundle && npm run min && npm run version && npm run banner",
+    "build": "npm run lint && npm run bundle && npm run min && npm run banner",
     "karma": "karma start",
-    "quick": "npm run bundle && npm run karma",
     "test": "npm run build && npm run karma",
-    "repo-tools": "repo-tools updates && repo-tools changelog && repo-tools authors",
-    "release": "npm test && npm run doc && npm run repo-tools",
-    "ci": "npm test && cat ./coverage/PhantomJS*/lcov.info | coveralls || true"
+    "release": "npm test && npm run doc && repo-tools updates && repo-tools changelog && repo-tools authors",
+    "ci": "npm test && cat ./coverage/PhantomJS*/lcov.info | codecov"
   },
   "peerDependencies": {
-    "js-data": "^3.0.0-alpha.19",
+    "js-data": "^3.0.0-beta.3"
+  },
+  "dependencies": {
     "firebase": ">=2.4.x"
   },
   "devDependencies": {
-    "babel-core": "6.7.2",
-    "babel-loader": "6.2.4",
-    "babel-polyfill": "6.7.2",
-    "babel-preset-es2015": "6.6.0",
-    "chai": "3.5.0",
-    "coveralls": "2.11.8",
-    "ink-docstrap": "1.1.4",
-    "js-data-adapter": "0.2.4",
-    "js-data-adapter-tests": "^2.0.0-alpha.16",
-    "js-data-repo-tools": "^0.2.0",
-    "jsdoc": "3.4.0",
+    "babel-polyfill": "6.7.4",
+    "babel-preset-es2015-rollup": "1.1.1",
+    "js-data-adapter": "~0.6.1",
+    "js-data-adapter-tests": "^2.0.0-alpha.17",
+    "js-data-repo-tools": "0.5.0",
     "karma": "0.13.22",
-    "karma-browserstack-launcher": "0.1.10",
+    "karma-browserstack-launcher": "0.1.11",
     "karma-chai": "0.1.0",
     "karma-coverage": "0.5.5",
     "karma-mocha": "0.2.2",
     "karma-phantomjs-launcher": "1.0.0",
     "karma-sinon": "1.0.4",
-    "mocha": "2.4.5",
-    "mout": "0.12.0",
-    "phantomjs-prebuilt": "2.1.5",
-    "sinon": "1.17.3",
-    "uglify-js": "2.6.2",
-    "webpack": "1.12.14",
-    "npm-watch": "latest"
+    "mout": "1.0.0",
+    "phantomjs-prebuilt": "2.1.7",
+    "rollup": "0.26.1",
+    "rollup-plugin-babel": "2.4.0",
+    "rollup-plugin-commonjs": "^2.2.1",
+    "rollup-plugin-node-resolve": "^1.5.0",
+    "uglify-js": "2.6.2"
   }
 }

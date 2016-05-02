@@ -1,16 +1,11 @@
-// Setup before each test
-// beforeEach(function (done) {
-//   store = new JSData.DS();
-//   firebaseAdapter = new FirebaseAdapter({
-//     basePath: 'https://js-data-firebase.firebaseio.com'
-//   });
+/* global JSDataFirebase */
 
 window.assert = JSDataAdapterTests.assert
 
 JSDataAdapterTests.init({
   debug: false,
   JSData: JSData,
-  Adapter: FirebaseAdapter,
+  Adapter: JSDataFirebase.FirebaseAdapter,
   adapterConfig: {
     debug: false,
     basePath: 'https://js-data-firebase-v3.firebaseio.com/'
@@ -38,4 +33,12 @@ JSDataAdapterTests.init({
     'findAllOpNotFound',
     'filterOnRelations'
   ]
+})
+
+describe('exports', function () {
+  it('should have correct exports', function () {
+    assert(JSDataFirebase)
+    assert(JSDataFirebase.FirebaseAdapter)
+    assert(JSDataFirebase.version)
+  })
 })

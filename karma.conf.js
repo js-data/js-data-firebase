@@ -60,6 +60,7 @@ module.exports = function (config) {
     files: [
       'node_modules/babel-polyfill/dist/polyfill.js',
       'node_modules/js-data/dist/js-data.js',
+      'bower_components/firebase/firebase.js',
       'dist/js-data-firebase.js',
       'node_modules/js-data-adapter-tests/dist/js-data-adapter-tests.js',
       'karma.start.js'

@@ -1,9 +1,6 @@
-/* global: localStorage */
-const JSData = require('js-data')
-const Adapter = require('js-data-adapter')
-const Firebase = require('firebase')
-
-const {Query, utils} = JSData
+import { Query, utils } from 'js-data'
+import { Adapter } from '../node_modules/js-data-adapter/src/index'
+import Firebase from 'firebase' // Help?
 
 function isValidString (value) {
   return (value != null && value !== '')
@@ -62,7 +59,7 @@ const DEFAULTS = {
   /**
    * TODO
    *
-   * @name DSFirebaseAdapter#basePath
+   * @name FirebaseAdapter#basePath
    * @type {string}
    */
   basePath: 'https://docs-examples.firebaseio.com/samplechat',
@@ -70,7 +67,7 @@ const DEFAULTS = {
   /**
    * TODO
    *
-   * @name DSFirebaseAdapter#debug
+   * @name FirebaseAdapter#debug
    * @type {boolean}
    * @default false
    */
@@ -78,24 +75,24 @@ const DEFAULTS = {
 }
 
 /**
- * DSFirebaseAdapter class.
+ * FirebaseAdapter class.
  *
  * @example
  * import {DataStore} from 'js-data'
- * import DSFirebaseAdapter from 'js-data-localstorage'
+ * import FirebaseAdapter from 'js-data-localstorage'
  * const store = new DataStore()
- * const adapter = new DSFirebaseAdapter()
+ * const adapter = new FirebaseAdapter()
  * store.registerAdapter('firebase', adapter, { 'default': true })
  *
- * @class DSFirebaseAdapter
+ * @class FirebaseAdapter
  * @param {Object} [opts] Configuration opts.
  * @param {string} [opts.basePath=''] TODO
  * @param {boolean} [opts.debug=false] TODO
  * @param {Object} [opts.storeage=localStorage] TODO
  */
-function DSFirebaseAdapter (opts) {
+export function FirebaseAdapter (opts) {
   const self = this
-  utils.classCallCheck(self, DSFirebaseAdapter)
+  utils.classCallCheck(self, FirebaseAdapter)
   opts || (opts = {})
   utils.fillIn(opts, DEFAULTS)
   Adapter.call(self, opts)
@@ -104,46 +101,46 @@ function DSFirebaseAdapter (opts) {
    * The ref instance used by this adapter. Use this directly when you
    * need to write custom queries.
    *
-   * @name DSFirebaseAdapter#baseRef
+   * @name FirebaseAdapter#baseRef
    * @type {Object}
    */
   self.baseRef = opts.baseRef || new Firebase(opts.basePath)
 }
 
 // Setup prototype inheritance from Adapter
-DSFirebaseAdapter.prototype = Object.create(Adapter.prototype, {
+FirebaseAdapter.prototype = Object.create(Adapter.prototype, {
   constructor: {
-    value: DSFirebaseAdapter,
+    value: FirebaseAdapter,
     enumerable: false,
     writable: true,
     configurable: true
   }
 })
 
-Object.defineProperty(DSFirebaseAdapter, '__super__', {
+Object.defineProperty(FirebaseAdapter, '__super__', {
   configurable: true,
   value: Adapter
 })
 
 /**
- * Alternative to ES6 class syntax for extending `DSFirebaseAdapter`.
+ * Alternative to ES6 class syntax for extending `FirebaseAdapter`.
  *
- * @name DSFirebaseAdapter.extend
+ * @name FirebaseAdapter.extend
  * @method
  * @param {Object} [instanceProps] Properties that will be added to the
  * prototype of the subclass.
  * @param {Object} [classProps] Properties that will be added as static
  * properties to the subclass itself.
- * @return {Object} Subclass of `DSFirebaseAdapter`.
+ * @return {Object} Subclass of `FirebaseAdapter`.
  */
-DSFirebaseAdapter.extend = utils.extend
+FirebaseAdapter.extend = utils.extend
 
-utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
+utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
   /**
    * Retrieve the number of records that match the selection query. Internal
    * method used by Adapter#count.
    *
-   * @name DSFirebaseAdapter#_count
+   * @name FirebaseAdapter#_count
    * @method
    * @private
    * @param {Object} mapper The mapper.
@@ -165,7 +162,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
   /**
    * Create a new record. Internal method used by Adapter#create.
    *
-   * @name DSFirebaseAdapter#_create
+   * @name FirebaseAdapter#_create
    * @method
    * @private
    * @param {Object} mapper The mapper.
@@ -266,7 +263,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * Create multiple records in a single batch. Internal method used by
    * Adapter#createMany.
    *
-   * @name DSFirebaseAdapter#_createMany
+   * @name FirebaseAdapter#_createMany
    * @method
    * @private
    * @param {Object} mapper The mapper.
@@ -286,7 +283,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * Destroy the record with the given primary key. Internal method used by
    * Adapter#destroy.
    *
-   * @name DSFirebaseAdapter#_destroy
+   * @name FirebaseAdapter#_destroy
    * @method
    * @private
    * @param {Object} mapper The mapper.
@@ -308,7 +305,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * Destroy the records that match the selection query. Internal method used by
    * Adapter#destroyAll.
    *
-   * @name DSFirebaseAdapter#_destroyAll
+   * @name FirebaseAdapter#_destroyAll
    * @method
    * @private
    * @param {Object} mapper the mapper.
@@ -336,7 +333,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * Retrieve the record with the given primary key. Internal method used by
    * Adapter#find.
    *
-   * @name DSFirebaseAdapter#_find
+   * @name FirebaseAdapter#_find
    * @method
    * @private
    * @param {Object} mapper The mapper.
@@ -357,7 +354,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
     * Retrieve the records that match the selection query. Internal method used
     * by Adapter#findAll.
     *
-    * @name DSFirebaseAdapter#_findAll
+    * @name FirebaseAdapter#_findAll
     * @method
     * @private
     * @param {Object} mapper The mapper.
@@ -394,7 +391,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * Retrieve the number of records that match the selection query. Internal
    * method used by Adapter#sum.
    *
-   * @name DSFirebaseAdapter#_sum
+   * @name FirebaseAdapter#_sum
    * @method
    * @private
    * @param {Object} mapper The mapper.
@@ -422,7 +419,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * Apply the given update to the record with the specified primary key.
    * Internal method used by Adapter#update.
    *
-   * @name DSFirebaseAdapter#_update
+   * @name FirebaseAdapter#_update
    * @method
    * @private
    * @param {Object} mapper The mapper.
@@ -457,7 +454,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * Apply the given update to all records that match the selection query.
    * Internal method used by Adapter#updateAll.
    *
-   * @name DSFirebaseAdapter#_updateAll
+   * @name FirebaseAdapter#_updateAll
    * @method
    * @private
    * @param {Object} mapper The mapper.
@@ -483,7 +480,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
    * Update the given records in a single batch. Internal method used by
    * Adapter#updateMany.
    *
-   * @name DSFirebaseAdapter#updateMany
+   * @name FirebaseAdapter#updateMany
    * @method
    * @private
    * @param {Object} mapper The mapper.
@@ -575,7 +572,7 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
 /**
  * Details of the current version of the `js-data-localstorage` module.
  *
- * @name DSFirebaseAdapter.version
+ * @name FirebaseAdapter.version
  * @type {Object}
  * @property {string} version.full The full semver value.
  * @property {number} version.major The major version number.
@@ -586,36 +583,30 @@ utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
  * @property {(string|boolean)} version.beta The beta version value,
  * otherwise `false` if the current version is not beta.
  */
-DSFirebaseAdapter.version = {
-  full: '<%= pkg.version %>',
-  major: parseInt('<%= major %>', 10),
-  minor: parseInt('<%= minor %>', 10),
-  patch: parseInt('<%= patch %>', 10),
-  alpha: '<%= alpha %>' !== 'false' ? '<%= alpha %>' : false,
-  beta: '<%= beta %>' !== 'false' ? '<%= beta %>' : false
-}
+
+export const version = '<%= version %>'
 
 /**
  * Registered as `js-data-localstorage` in NPM and Bower.
  *
  * __Script tag__:
  * ```javascript
- * window.DSFirebaseAdapter
+ * window.FirebaseAdapter
  * ```
  * __CommonJS__:
  * ```javascript
- * var DSFirebaseAdapter = require('js-data-localstorage')
+ * var FirebaseAdapter = require('js-data-localstorage')
  * ```
  * __ES6 Modules__:
  * ```javascript
- * import DSFirebaseAdapter from 'js-data-localstorage'
+ * import FirebaseAdapter from 'js-data-localstorage'
  * ```
  * __AMD__:
  * ```javascript
- * define('myApp', ['js-data-localstorage'], function (DSFirebaseAdapter) { ... })
+ * define('myApp', ['js-data-localstorage'], function (FirebaseAdapter) { ... })
  * ```
  *
  * @module js-data-localstorage
  */
 
-module.exports = DSFirebaseAdapter
+export default FirebaseAdapter
