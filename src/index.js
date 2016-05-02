@@ -79,7 +79,7 @@ const DEFAULTS = {
  *
  * @example
  * import {DataStore} from 'js-data'
- * import FirebaseAdapter from 'js-data-localstorage'
+ * import FirebaseAdapter from 'js-data-firebase'
  * const store = new DataStore()
  * const adapter = new FirebaseAdapter()
  * store.registerAdapter('firebase', adapter, { 'default': true })
@@ -88,7 +88,6 @@ const DEFAULTS = {
  * @param {Object} [opts] Configuration opts.
  * @param {string} [opts.basePath=''] TODO
  * @param {boolean} [opts.debug=false] TODO
- * @param {Object} [opts.storeage=localStorage] TODO
  */
 export function FirebaseAdapter (opts) {
   const self = this
@@ -570,7 +569,7 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
 })
 
 /**
- * Details of the current version of the `js-data-localstorage` module.
+ * Details of the current version of the `js-data-firebase` module.
  *
  * @name FirebaseAdapter.version
  * @type {Object}
@@ -587,7 +586,7 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
 export const version = '<%= version %>'
 
 /**
- * Registered as `js-data-localstorage` in NPM and Bower.
+ * Registered as `js-data-firebase` in NPM and Bower.
  *
  * __Script tag__:
  * ```javascript
@@ -595,18 +594,18 @@ export const version = '<%= version %>'
  * ```
  * __CommonJS__:
  * ```javascript
- * var FirebaseAdapter = require('js-data-localstorage')
+ * var FirebaseAdapter = require('js-data-firebase')
  * ```
  * __ES6 Modules__:
  * ```javascript
- * import FirebaseAdapter from 'js-data-localstorage'
+ * import FirebaseAdapter from 'js-data-firebase'
  * ```
  * __AMD__:
  * ```javascript
- * define('myApp', ['js-data-localstorage'], function (FirebaseAdapter) { ... })
+ * define('myApp', ['js-data-firebase'], function (FirebaseAdapter) { ... })
  * ```
  *
- * @module js-data-localstorage
+ * @module js-data-firebase
  */
 
 export default FirebaseAdapter

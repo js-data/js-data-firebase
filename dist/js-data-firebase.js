@@ -1708,7 +1708,7 @@
    *
    * @example
    * import {DataStore} from 'js-data'
-   * import FirebaseAdapter from 'js-data-localstorage'
+   * import FirebaseAdapter from 'js-data-firebase'
    * const store = new DataStore()
    * const adapter = new FirebaseAdapter()
    * store.registerAdapter('firebase', adapter, { 'default': true })
@@ -1717,7 +1717,6 @@
    * @param {Object} [opts] Configuration opts.
    * @param {string} [opts.basePath=''] TODO
    * @param {boolean} [opts.debug=false] TODO
-   * @param {Object} [opts.storeage=localStorage] TODO
    */
   function FirebaseAdapter(opts) {
     var self = this;
@@ -2209,7 +2208,7 @@
   });
 
   /**
-   * Details of the current version of the `js-data-localstorage` module.
+   * Details of the current version of the `js-data-firebase` module.
    *
    * @name FirebaseAdapter.version
    * @type {Object}
