@@ -11,3 +11,4 @@ npm-debug.log
 junit/
 dist/karma.start.js
 doc/
+typings/

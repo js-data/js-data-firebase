@@ -1,0 +1,9 @@
+{
+  "name": "js-data-firebase",
+  "version": false,
+  "main": "./dist/js-data-firebase.d.ts",
+  "ambientDependencies": {
+    "es6-shim": "registry:dt/es6-shim",
+    "firebase": "registry:dt/firebase#2.4.1+20160412125105"
+  }
+}
