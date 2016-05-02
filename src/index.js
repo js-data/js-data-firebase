@@ -1,387 +1,621 @@
-let JSData = require('js-data');
-let Firebase = require('firebase');
-let values = require('mout/object/values');
-let map = require('mout/array/map');
-let unique = require('mout/array/unique');
+/* global: localStorage */
+const JSData = require('js-data')
+const Adapter = require('js-data-adapter')
+const Firebase = require('firebase')
 
-let emptyStore = new JSData.DS();
-let DSUtils = JSData.DSUtils;
-let filter = emptyStore.defaults.defaultFilter;
+const {Query, utils} = JSData
 
-class Defaults {
-
+function isValidString (value) {
+  return (value != null && value !== '')
 }
 
-Defaults.prototype.basePath = '';
-
-let queue = [];
-let taskInProcess = false;
-
-function enqueue(task) {
-  queue.push(task);
+function join (items, separator) {
+  separator || (separator = '')
+  return items.filter(isValidString).join(separator)
 }
 
-function dequeue() {
+function makePath (...args) { // eslint-disable-line no-unused-vars
+  let result = join(args, '/')
+  return result.replace(/([^:\/]|^)\/{2,}/g, '$1/')
+}
+
+let queue = []
+let taskInProcess = false
+
+function enqueue (task) {
+  queue.push(task)
+}
+
+function dequeue () {
   if (queue.length && !taskInProcess) {
-    taskInProcess = true;
-    queue[0]();
+    taskInProcess = true
+    queue[0]()
   }
 }
 
-function queueTask(task) {
+function queueTask (task) {
   if (!queue.length) {
-    enqueue(task);
-    dequeue();
+    enqueue(task)
+    dequeue()
   } else {
-    enqueue(task);
+    enqueue(task)
   }
 }
 
-function createTask(fn) {
-  return new DSUtils.Promise(fn).then(result => {
-    taskInProcess = false;
-    queue.shift();
-    setTimeout(dequeue, 0);
-    return result;
-  }, err => {
-    taskInProcess = false;
-    queue.shift();
-    setTimeout(dequeue, 0);
-    return DSUtils.Promise.reject(err);
-  });
+function createTask (fn) {
+  return new Promise(fn).then(function (result) {
+    taskInProcess = false
+    queue.shift()
+    setTimeout(dequeue, 0)
+    return result
+  }, function (err) {
+    taskInProcess = false
+    queue.shift()
+    setTimeout(dequeue, 0)
+    return utils.reject(err)
+  })
 }
 
-class DSFirebaseAdapter {
-  constructor(options) {
-    options = options || {};
-    this.defaults = new Defaults();
-    DSUtils.deepMixIn(this.defaults, options);
-    this.ref = new Firebase(options.basePath || this.defaults.basePath);
+const __super__ = Adapter.prototype
+
+const DEFAULTS = {
+  /**
+   * TODO
+   *
+   * @name DSFirebaseAdapter#basePath
+   * @type {string}
+   */
+  basePath: 'https://docs-examples.firebaseio.com/samplechat',
+
+  /**
+   * TODO
+   *
+   * @name DSFirebaseAdapter#debug
+   * @type {boolean}
+   * @default false
+   */
+  debug: false
+}
+
+/**
+ * DSFirebaseAdapter class.
+ *
+ * @example
+ * import {DataStore} from 'js-data'
+ * import DSFirebaseAdapter from 'js-data-localstorage'
+ * const store = new DataStore()
+ * const adapter = new DSFirebaseAdapter()
+ * store.registerAdapter('firebase', adapter, { 'default': true })
+ *
+ * @class DSFirebaseAdapter
+ * @param {Object} [opts] Configuration opts.
+ * @param {string} [opts.basePath=''] TODO
+ * @param {boolean} [opts.debug=false] TODO
+ * @param {Object} [opts.storeage=localStorage] TODO
+ */
+function DSFirebaseAdapter (opts) {
+  const self = this
+  utils.classCallCheck(self, DSFirebaseAdapter)
+  opts || (opts = {})
+  utils.fillIn(opts, DEFAULTS)
+  Adapter.call(self, opts)
+
+  /**
+   * The ref instance used by this adapter. Use this directly when you
+   * need to write custom queries.
+   *
+   * @name DSFirebaseAdapter#baseRef
+   * @type {Object}
+   */
+  self.baseRef = opts.baseRef || new Firebase(opts.basePath)
+}
+
+// Setup prototype inheritance from Adapter
+DSFirebaseAdapter.prototype = Object.create(Adapter.prototype, {
+  constructor: {
+    value: DSFirebaseAdapter,
+    enumerable: false,
+    writable: true,
+    configurable: true
   }
+})
 
-  getRef(resourceConfig, options) {
-    options = options || {};
-    return this.ref.child(options.endpoint || resourceConfig.endpoint);
-  }
+Object.defineProperty(DSFirebaseAdapter, '__super__', {
+  configurable: true,
+  value: Adapter
+})
 
-  find(resourceConfig, id, options) {
-    let instance;
-    options = options || {};
-    options.with = options.with || [];
-    return new DSUtils.Promise((resolve, reject) => {
-      this.getRef(resourceConfig, options).child(id).once('value', dataSnapshot => {
-        let item = dataSnapshot.val();
-        if (!item) {
-          reject(new Error('Not Found!'));
-        } else {
-          item[resourceConfig.idAttribute] = item[resourceConfig.idAttribute] || id;
-          resolve(item);
-        }
-      }, reject, this);
-    }).then(_instance => {
-        instance = _instance;
-        let tasks = [];
+/**
+ * Alternative to ES6 class syntax for extending `DSFirebaseAdapter`.
+ *
+ * @name DSFirebaseAdapter.extend
+ * @method
+ * @param {Object} [instanceProps] Properties that will be added to the
+ * prototype of the subclass.
+ * @param {Object} [classProps] Properties that will be added as static
+ * properties to the subclass itself.
+ * @return {Object} Subclass of `DSFirebaseAdapter`.
+ */
+DSFirebaseAdapter.extend = utils.extend
 
-        DSUtils.forEach(resourceConfig.relationList, def => {
-          let relationName = def.relation;
-          let relationDef = resourceConfig.getResource(relationName);
-          let containedName = null;
-          if (DSUtils.contains(options.with, relationName)) {
-            containedName = relationName;
-          } else if (DSUtils.contains(options.with, def.localField)) {
-            containedName = def.localField;
-          }
-          if (containedName) {
-            let __options = DSUtils.deepMixIn({}, options.orig ? options.orig() : options);
-            __options.with = options.with.slice();
-            __options = DSUtils._(relationDef, __options);
-            DSUtils.remove(__options.with, containedName);
-            DSUtils.forEach(__options.with, (relation, i) => {
-              if (relation && relation.indexOf(containedName) === 0 && relation.length >= containedName.length && relation[containedName.length] === '.') {
-                __options.with[i] = relation.substr(containedName.length + 1);
-              } else {
-                __options.with[i] = '';
-              }
-            });
+utils.addHiddenPropsToTarget(DSFirebaseAdapter.prototype, {
+  /**
+   * Retrieve the number of records that match the selection query. Internal
+   * method used by Adapter#count.
+   *
+   * @name DSFirebaseAdapter#_count
+   * @method
+   * @private
+   * @param {Object} mapper The mapper.
+   * @param {Object} query Selection query.
+   * @param {Object} [opts] Configuration options.
+   * @return {Promise}
+   */
+  _count (mapper, query, opts) {
+    const self = this
+    opts || (opts = {})
+    query || (query = {})
 
-            let task;
+    return self._findAll(mapper, query, opts).then(function (result) {
+      result[0] = result[0].length
+      return result
+    })
+  },
 
-            if ((def.type === 'hasOne' || def.type === 'hasMany') && def.foreignKey) {
-              task = this.findAll(resourceConfig.getResource(relationName), {
-                where: {
-                  [def.foreignKey]: {
-                    '==': instance[resourceConfig.idAttribute]
-                  }
-                }
-              }, __options).then(relatedItems => {
-                if (def.type === 'hasOne' && relatedItems.length) {
-                  DSUtils.set(instance, def.localField, relatedItems[0]);
-                } else {
-                  DSUtils.set(instance, def.localField, relatedItems);
-                }
-                return relatedItems;
-              });
-            } else if (def.type === 'hasMany' && def.localKeys) {
-              let localKeys = [];
-              let itemKeys = instance[def.localKeys] || [];
-              itemKeys = Array.isArray(itemKeys) ? itemKeys : DSUtils.keys(itemKeys);
-              localKeys = localKeys.concat(itemKeys || []);
-              task = this.findAll(resourceConfig.getResource(relationName), {
-                where: {
-                  [relationDef.idAttribute]: {
-                    'in': DSUtils.filter(unique(localKeys), x => x)
-                  }
-                }
-              }, __options).then(relatedItems => {
-                DSUtils.set(instance, def.localField, relatedItems);
-                return relatedItems;
-              });
-            } else if (def.type === 'belongsTo' || (def.type === 'hasOne' && def.localKey)) {
-              task = this.find(resourceConfig.getResource(relationName), DSUtils.get(instance, def.localKey), __options).then(relatedItem => {
-                DSUtils.set(instance, def.localField, relatedItem);
-                return relatedItem;
-              });
-            }
+  /**
+   * Create a new record. Internal method used by Adapter#create.
+   *
+   * @name DSFirebaseAdapter#_create
+   * @method
+   * @private
+   * @param {Object} mapper The mapper.
+   * @param {Object} props The record to be created.
+   * @param {Object} [opts] Configuration options.
+   * @return {Promise}
+   */
+  _create (mapper, props, opts) {
+    const self = this
+    props || (props = {})
+    opts || (opts = {})
+    return self._upsert(mapper, props, opts)
+  },
 
-            if (task) {
-              tasks.push(task);
-            }
-          }
-        });
+  _upsert (mapper, props, opts) {
+    const self = this
+    const _props = utils.copy(props)
+    opts || (opts = {})
 
-        return DSUtils.Promise.all(tasks);
-      })
-      .then(() => instance);
-  }
+    const id = utils.get(_props, mapper.idAttribute)
+    const collectionRef = self.getRef(mapper, opts)
 
-  findAll(resourceConfig, params, options) {
-    let items = null;
-    options = options || {};
-    options.with = options.with || [];
-    return new DSUtils.Promise((resolve, reject) => {
-      this.getRef(resourceConfig, options).once('value', dataSnapshot => {
-        let data = dataSnapshot.val();
-        DSUtils.forOwn(data, (value, key) => {
-          if (!value[resourceConfig.idAttribute]) {
-            value[resourceConfig.idAttribute] = `/${key}`;
-          }
-        });
-        resolve(filter.call(emptyStore, values(data), resourceConfig.name, params, options));
-      }, reject, this);
-    }).then(_items => {
-        items = _items;
-        let tasks = [];
-        DSUtils.forEach(resourceConfig.relationList, def => {
-          let relationName = def.relation;
-          let relationDef = resourceConfig.getResource(relationName);
-          let containedName = null;
-          if (DSUtils.contains(options.with, relationName)) {
-            containedName = relationName;
-          } else if (DSUtils.contains(options.with, def.localField)) {
-            containedName = def.localField;
-          }
-          if (containedName) {
-            let __options = DSUtils.deepMixIn({}, options.orig ? options.orig() : options);
-            __options.with = options.with.slice();
-            __options = DSUtils._(relationDef, __options);
-            DSUtils.remove(__options.with, containedName);
+    let itemRef
 
-            DSUtils.forEach(__options.with, (relation, i) => {
-              if (relation && relation.indexOf(containedName) === 0 && relation.length >= containedName.length && relation[containedName.length] === '.') {
-                __options.with[i] = relation.substr(containedName.length + 1);
-              } else {
-                __options.with[i] = '';
-              }
-            });
-
-            let task;
-
-            if ((def.type === 'hasOne' || def.type === 'hasMany') && def.foreignKey) {
-              task = this.findAll(resourceConfig.getResource(relationName), {
-                where: {
-                  [def.foreignKey]: {
-                    'in': DSUtils.filter(map(items, item => DSUtils.get(item, resourceConfig.idAttribute)), x => x)
-                  }
-                }
-              }, __options).then(relatedItems => {
-                DSUtils.forEach(items, item => {
-                  let attached = [];
-                  DSUtils.forEach(relatedItems, relatedItem => {
-                    if (DSUtils.get(relatedItem, def.foreignKey) === item[resourceConfig.idAttribute]) {
-                      attached.push(relatedItem);
-                    }
-                  });
-                  if (def.type === 'hasOne' && attached.length) {
-                    DSUtils.set(item, def.localField, attached[0]);
-                  } else {
-                    DSUtils.set(item, def.localField, attached);
-                  }
-                });
-                return relatedItems;
-              });
-            } else if (def.type === 'hasMany' && def.localKeys) {
-              let localKeys = [];
-              DSUtils.forEach(items, item => {
-                let itemKeys = item[def.localKeys] || [];
-                itemKeys = Array.isArray(itemKeys) ? itemKeys : DSUtils.keys(itemKeys);
-                localKeys = localKeys.concat(itemKeys || []);
-              });
-              task = this.findAll(resourceConfig.getResource(relationName), {
-                where: {
-                  [relationDef.idAttribute]: {
-                    'in': DSUtils.filter(unique(localKeys), x => x)
-                  }
-                }
-              }, __options).then(relatedItems => {
-                DSUtils.forEach(items, item => {
-                  let attached = [];
-                  let itemKeys = item[def.localKeys] || [];
-                  itemKeys = Array.isArray(itemKeys) ? itemKeys : DSUtils.keys(itemKeys);
-                  DSUtils.forEach(relatedItems, relatedItem => {
-                    if (itemKeys && DSUtils.contains(itemKeys, relatedItem[relationDef.idAttribute])) {
-                      attached.push(relatedItem);
-                    }
-                  });
-                  DSUtils.set(item, def.localField, attached);
-                });
-                return relatedItems;
-              });
-            } else if (def.type === 'belongsTo' || (def.type === 'hasOne' && def.localKey)) {
-              task = this.findAll(resourceConfig.getResource(relationName), {
-                where: {
-                  [relationDef.idAttribute]: {
-                    'in': DSUtils.filter(map(items, item => DSUtils.get(item, def.localKey)), x => x)
-                  }
-                }
-              }, __options).then(relatedItems => {
-                DSUtils.forEach(items, item => {
-                  DSUtils.forEach(relatedItems, relatedItem => {
-                    if (relatedItem[relationDef.idAttribute] === item[def.localKey]) {
-                      DSUtils.set(item, def.localField, relatedItem);
-                    }
-                  });
-                });
-                return relatedItems;
-              });
-            }
-
-            if (task) {
-              tasks.push(task);
-            }
-          }
-        });
-        return DSUtils.Promise.all(tasks);
-      }).then(() => items);
-  }
-
-  create(resourceConfig, attrs, options) {
-    var id = attrs[resourceConfig.idAttribute];
-    if (DSUtils.isString(id) || DSUtils.isNumber(id)) {
-      return this.update(resourceConfig, id, attrs, options);
+    if (utils.isString(id) || utils.isNumber(id)) {
+      itemRef = collectionRef.child(id)
     } else {
-      return createTask((resolve, reject) => {
-        queueTask(() => {
-          let resourceRef = this.getRef(resourceConfig, options);
-          var itemRef = resourceRef.push(DSUtils.removeCircular(DSUtils.omit(attrs, resourceConfig.relationFields || [])), err => {
-            if (err) {
-              return reject(err);
-            } else {
-              let id = itemRef.toString().replace(resourceRef.toString(), '');
-              itemRef.child(resourceConfig.idAttribute).set(id, err => {
-                if (err) {
-                  reject(err);
-                } else {
-                  itemRef.once('value', dataSnapshot => {
-                    try {
-                      resolve(dataSnapshot.val());
-                    } catch (err) {
-                      reject(err);
-                    }
-                  }, reject, this);
-                }
-              });
-            }
-          });
-        });
-      });
+      itemRef = collectionRef.push()
+      utils.set(_props, mapper.idAttribute, itemRef.key())
     }
-  }
 
-  update(resourceConfig, id, attrs, options) {
-    return createTask((resolve, reject) => {
-      queueTask(() => {
-        attrs = DSUtils.removeCircular(DSUtils.omit(attrs || {}, resourceConfig.relationFields || []));
-        let itemRef = this.getRef(resourceConfig, options).child(id);
-        itemRef.once('value', dataSnapshot => {
-          try {
-            let item = dataSnapshot.val() || {};
-            let fields, removed, i;
-            if (resourceConfig.relations) {
-              fields = resourceConfig.relationFields;
-              removed = [];
-              for (i = 0; i < fields.length; i++) {
-                removed.push(attrs[fields[i]]);
-                delete attrs[fields[i]];
-              }
-            }
-            DSUtils.deepMixIn(item, attrs);
-            if (resourceConfig.relations) {
-              fields = resourceConfig.relationFields;
-              for (i = 0; i < fields.length; i++) {
-                let toAddBack = removed.shift();
-                if (toAddBack) {
-                  attrs[fields[i]] = toAddBack;
-                }
-              }
-            }
-            itemRef.set(item, err => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve(item);
-              }
-            });
-          } catch (err) {
-            reject(err);
+    return itemRef.set(_props).then(() => {
+      return self._once(itemRef).then((record) => {
+        if (!record) {
+          throw new Error('Not Found')
+        }
+        return [record, itemRef]
+      })
+    })
+  },
+
+  _upsertBatch (mapper, records, opts) {
+    const self = this
+    opts || (opts = {})
+
+    const refValueCollection = []
+    const collectionRef = self.getRef(mapper, opts)
+
+    // generate path for each
+    records.forEach((record) => {
+      const id = utils.get(record, mapper.idAttribute)
+      let _props = utils.copy(record)
+      let itemRef
+
+      if (utils.isString(id) || utils.isNumber(id)) {
+        itemRef = collectionRef.child(id)
+      } else {
+        itemRef = collectionRef.push()
+        utils.set(_props, mapper.idAttribute, itemRef.key())
+      }
+      refValueCollection.push({ ref: itemRef, props: _props })
+    })
+
+    return self._atomicUpdate(refValueCollection).then(() => {
+      // since UDFs and timestamps can alter values on write, let's get the latest values
+      return utils.Promise.all(refValueCollection.map((item) => {
+        return self._once(item.ref).then((record) => {
+          return [record, item.ref]
+        })
+      })).then(() => {
+        // just return the updated records and not the refs?
+        return [refValueCollection.map((item) => item.props), refValueCollection]
+      })
+    })
+  },
+
+  _once (ref) {
+    return ref.once('value').then((dataSnapshot) => {
+      if (!dataSnapshot.exists()) {
+        return null
+      }
+      return dataSnapshot.val()
+    })
+  },
+
+  _atomicUpdate (refValueCollection) { // collection of refs and the new value to set at that ref
+    const self = this
+    // do a deep-path update off the baseRef
+    // see https://www.firebase.com/blog/2015-09-24-atomic-writes-and-more.html
+    let atomicUpdate = {}
+    refValueCollection.forEach((item) => {
+      atomicUpdate[item.ref.toString().replace(self.baseRef.toString(), '')] = item.props
+    })
+    return self.baseRef.update(atomicUpdate)
+  },
+
+  /**
+   * Create multiple records in a single batch. Internal method used by
+   * Adapter#createMany.
+   *
+   * @name DSFirebaseAdapter#_createMany
+   * @method
+   * @private
+   * @param {Object} mapper The mapper.
+   * @param {Object} records The records to be created.
+   * @param {Object} [opts] Configuration options.
+   * @return {Promise}
+   */
+  _createMany (mapper, records, opts) {
+    // todo check or enforce upsert?
+    const self = this
+    opts || (opts = {})
+
+    return self._upsertBatch(mapper, records, opts)
+  },
+
+  /**
+   * Destroy the record with the given primary key. Internal method used by
+   * Adapter#destroy.
+   *
+   * @name DSFirebaseAdapter#_destroy
+   * @method
+   * @private
+   * @param {Object} mapper The mapper.
+   * @param {(string|number)} id Primary key of the record to destroy.
+   * @param {Object} [opts] Configuration options.
+   * @return {Promise}
+   */
+  _destroy (mapper, id, opts) {
+    const self = this
+    opts || (opts = {})
+    let ref = self.getRef(mapper, opts).child(id)
+
+    return ref.remove().then(() => {
+      return [undefined, ref]
+    })
+  },
+
+  /**
+   * Destroy the records that match the selection query. Internal method used by
+   * Adapter#destroyAll.
+   *
+   * @name DSFirebaseAdapter#_destroyAll
+   * @method
+   * @private
+   * @param {Object} mapper the mapper.
+   * @param {Object} [query] Selection query.
+   * @param {Object} [opts] Configuration options.
+   * @return {Promise}
+   */
+  _destroyAll (mapper, query, opts) {
+    const self = this
+    opts || (opts = {})
+    query || (query = {})
+
+    return self._findAll(mapper, query).then((results) => {
+      let [records] = results
+      return utils.Promise.all(records.map((record) => {
+        const id = utils.get(record, mapper.idAttribute)
+        return self._destroy(mapper, id, opts)
+      })).then(() => {
+        return [undefined, {}]
+      })
+    })
+  },
+
+  /**
+   * Retrieve the record with the given primary key. Internal method used by
+   * Adapter#find.
+   *
+   * @name DSFirebaseAdapter#_find
+   * @method
+   * @private
+   * @param {Object} mapper The mapper.
+   * @param {(string|number)} id Primary key of the record to retrieve.
+   * @param {Object} [opts] Configuration options.
+   * @return {Promise}
+   */
+  _find (mapper, id, opts) {
+    const self = this
+    opts || (opts = {})
+
+    let itemRef = self.getRef(mapper, opts).child(id)
+    return self._once(itemRef).then((record) => {
+      return [record, itemRef]
+    })
+  },
+  /**
+    * Retrieve the records that match the selection query. Internal method used
+    * by Adapter#findAll.
+    *
+    * @name DSFirebaseAdapter#_findAll
+    * @method
+    * @private
+    * @param {Object} mapper The mapper.
+    * @param {Object} query Selection query.
+    * @param {Object} [opts] Configuration options.
+    * @return {Promise}
+    */
+  _findAll (mapper, query, opts) {
+    const self = this
+    opts || (opts = {})
+    query || (query = {})
+
+    let collectionRef = self.getRef(mapper, opts)
+
+    return collectionRef.once('value').then((dataSnapshot) => {
+      let data = dataSnapshot.val()
+      if (!data) return [[], collectionRef]
+
+      let records = Object.values(data)
+      const _query = new Query({
+        index: {
+          getAll () {
+            return records
           }
-        }, reject, this);
-      });
-    });
-  }
+        }
+      })
+      var filtered = _query.filter(query).run()
+      console.info(records, query, filtered)
+      return [filtered, collectionRef]
+    })
+  },
 
-  updateAll(resourceConfig, attrs, params, options) {
-    return this.findAll(resourceConfig, params, options).then(items => {
-      var tasks = [];
-      DSUtils.forEach(items, item => {
-        tasks.push(this.update(resourceConfig, item[resourceConfig.idAttribute], attrs, options));
-      });
-      return DSUtils.Promise.all(tasks);
-    });
-  }
+  /**
+   * Retrieve the number of records that match the selection query. Internal
+   * method used by Adapter#sum.
+   *
+   * @name DSFirebaseAdapter#_sum
+   * @method
+   * @private
+   * @param {Object} mapper The mapper.
+   * @param {string} field The field to sum.
+   * @param {Object} query Selection query.
+   * @param {Object} [opts] Configuration options.
+   * @return {Promise}
+   */
+  _sum (mapper, field, query, opts) {
+    const self = this
+    opts || (opts = {})
+    query || (query = {})
 
-  destroy(resourceConfig, id, options) {
-    return createTask((resolve, reject) => {
-      queueTask(() => {
-        this.getRef(resourceConfig, options).child(id).remove(err => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
+    return self._findAll(mapper, query, opts).then(function (result) {
+      let sum = 0
+      result[0].forEach(function (record) {
+        sum += utils.get(record, field) || 0
+      })
+      result[0] = sum
+      return result
+    })
+  },
+
+  /**
+   * Apply the given update to the record with the specified primary key.
+   * Internal method used by Adapter#update.
+   *
+   * @name DSFirebaseAdapter#_update
+   * @method
+   * @private
+   * @param {Object} mapper The mapper.
+   * @param {(string|number)} id The primary key of the record to be updated.
+   * @param {Object} props The update to apply to the record.
+   * @param {Object} [opts] Configuration options.
+   * @return {Promise}
+   */
+  _update (mapper, id, props, opts) {
+    const self = this
+    props || (props = {})
+    opts || (opts = {})
+
+    let itemRef = self.getRef(mapper, opts).child(id)
+    return self._once(itemRef).then((currentVal) => {
+      if (!currentVal) {
+        throw new Error('Not Found')
+      }
+      utils.deepMixIn(currentVal, props)
+      return itemRef.set(currentVal).then(() => {
+        return self._once(itemRef).then((record) => {
+          if (!record) {
+            throw new Error('Not Found')
           }
-        });
-      });
-    });
-  }
+          return [record, itemRef]
+        })
+      })
+    })
+  },
 
-  destroyAll(resourceConfig, params, options) {
-    return this.findAll(resourceConfig, params, options).then(items => {
-      var tasks = [];
-      DSUtils.forEach(items, item => {
-        tasks.push(this.destroy(resourceConfig, item[resourceConfig.idAttribute], options));
-      });
-      return DSUtils.Promise.all(tasks);
-    });
+  /**
+   * Apply the given update to all records that match the selection query.
+   * Internal method used by Adapter#updateAll.
+   *
+   * @name DSFirebaseAdapter#_updateAll
+   * @method
+   * @private
+   * @param {Object} mapper The mapper.
+   * @param {Object} props The update to apply to the selected records.
+   * @param {Object} [query] Selection query.
+   * @param {Object} [opts] Configuration options.
+   * @return {Promise}
+   */
+  _updateAll (mapper, props, query, opts) {
+    const self = this
+    opts || (opts = {})
+    props || (props = {})
+    query || (query = {})
+
+    return self._findAll(mapper, query, opts).then((results) => {
+      let [records] = results
+      records = records.map((record) => utils.deepMixIn(record, props))
+      return self._upsertBatch(mapper, records, opts)
+    })
+  },
+
+  /**
+   * Update the given records in a single batch. Internal method used by
+   * Adapter#updateMany.
+   *
+   * @name DSFirebaseAdapter#updateMany
+   * @method
+   * @private
+   * @param {Object} mapper The mapper.
+   * @param {Object[]} records The records to update.
+   * @param {Object} [opts] Configuration options.
+   * @return {Promise}
+   */
+  _updateMany (mapper, records, opts) {
+    const self = this
+    opts || (opts = {})
+
+    return self._upsertBatch(mapper, records, opts)
+  },
+
+  getRef (mapper, opts) {
+    const self = this
+    opts = opts || {}
+    return self.baseRef.child(opts.endpoint || mapper.endpoint || mapper.name)
+  },
+
+  create (mapper, props, opts) {
+    const self = this
+    props || (props = {})
+    return createTask(function (success, failure) {
+      queueTask(function () {
+        __super__.create.call(self, mapper, props, opts).then(success, failure)
+      })
+    })
+  },
+
+  createMany (mapper, props, opts) {
+    const self = this
+    props || (props = {})
+    return createTask(function (success, failure) {
+      queueTask(function () {
+        __super__.createMany.call(self, mapper, props, opts).then(success, failure)
+      })
+    })
+  },
+
+  destroy (mapper, id, opts) {
+    const self = this
+    return createTask(function (success, failure) {
+      queueTask(function () {
+        __super__.destroy.call(self, mapper, id, opts).then(success, failure)
+      })
+    })
+  },
+
+  destroyAll (mapper, query, opts) {
+    const self = this
+    return createTask(function (success, failure) {
+      queueTask(function () {
+        __super__.destroyAll.call(self, mapper, query, opts).then(success, failure)
+      })
+    })
+  },
+
+  update (mapper, id, props, opts) {
+    const self = this
+    props || (props = {})
+    return createTask(function (success, failure) {
+      queueTask(function () {
+        __super__.update.call(self, mapper, id, props, opts).then(success, failure)
+      })
+    })
+  },
+
+  updateAll (mapper, props, query, opts) {
+    const self = this
+    props || (props = {})
+    return createTask(function (success, failure) {
+      queueTask(function () {
+        __super__.updateAll.call(self, mapper, props, query, opts).then(success, failure)
+      })
+    })
+  },
+
+  updateMany (mapper, records, opts) {
+    const self = this
+    return createTask(function (success, failure) {
+      queueTask(function () {
+        __super__.updateMany.call(self, mapper, records, opts).then(success, failure)
+      })
+    })
   }
+})
+
+/**
+ * Details of the current version of the `js-data-localstorage` module.
+ *
+ * @name DSFirebaseAdapter.version
+ * @type {Object}
+ * @property {string} version.full The full semver value.
+ * @property {number} version.major The major version number.
+ * @property {number} version.minor The minor version number.
+ * @property {number} version.patch The patch version number.
+ * @property {(string|boolean)} version.alpha The alpha version value,
+ * otherwise `false` if the current version is not alpha.
+ * @property {(string|boolean)} version.beta The beta version value,
+ * otherwise `false` if the current version is not beta.
+ */
+DSFirebaseAdapter.version = {
+  full: '<%= pkg.version %>',
+  major: parseInt('<%= major %>', 10),
+  minor: parseInt('<%= minor %>', 10),
+  patch: parseInt('<%= patch %>', 10),
+  alpha: '<%= alpha %>' !== 'false' ? '<%= alpha %>' : false,
+  beta: '<%= beta %>' !== 'false' ? '<%= beta %>' : false
 }
 
-module.exports = DSFirebaseAdapter;
+/**
+ * Registered as `js-data-localstorage` in NPM and Bower.
+ *
+ * __Script tag__:
+ * ```javascript
+ * window.DSFirebaseAdapter
+ * ```
+ * __CommonJS__:
+ * ```javascript
+ * var DSFirebaseAdapter = require('js-data-localstorage')
+ * ```
+ * __ES6 Modules__:
+ * ```javascript
+ * import DSFirebaseAdapter from 'js-data-localstorage'
+ * ```
+ * __AMD__:
+ * ```javascript
+ * define('myApp', ['js-data-localstorage'], function (DSFirebaseAdapter) { ... })
+ * ```
+ *
+ * @module js-data-localstorage
+ */
+
+module.exports = DSFirebaseAdapter

@@ -5,7 +5,7 @@
 Firebase adapter for [js-data](http://www.js-data.io/).
 
 ### API Documentation
-[DSFirebaseAdapter](http://www.js-data.io/docs/dsfirebaseadapter)
+[FirebaseAdapter](http://www.js-data.io/docs/firebaseadapter)
 
 ### Demos
 [js-data-firebase + Angular](https://js-data-firebase.firebaseapp.com/angular/)
@@ -34,7 +34,7 @@ Load `firebase.js`.
 Load `js-data-firebase.js` after `js-data.js`.
 
 ```js
-var adapter = new DSFirebaseAdapter({
+var adapter = new FirebaseAdapter({
   basePath: 'https://my-app.firebase.io'
 });
 
