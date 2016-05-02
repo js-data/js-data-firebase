@@ -371,8 +371,11 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
     return collectionRef.once('value').then((dataSnapshot) => {
       let data = dataSnapshot.val()
       if (!data) return [[], collectionRef]
+      let records = []
+      utils.forOwn(data, (value, key) => {
+        records.push(value)
+      })
 
-      let records = Object.values(data)
       const _query = new Query({
         index: {
           getAll () {
@@ -380,6 +383,7 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
           }
         }
       })
+
       var filtered = _query.filter(query).run()
       console.info(records, query, filtered)
       return [filtered, collectionRef]

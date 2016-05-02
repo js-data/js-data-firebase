@@ -2009,8 +2009,11 @@
       return collectionRef.once('value').then(function (dataSnapshot) {
         var data = dataSnapshot.val();
         if (!data) return [[], collectionRef];
+        var records = [];
+        jsData.utils.forOwn(data, function (value, key) {
+          records.push(value);
+        });
 
-        var records = Object.values(data);
         var _query = new jsData.Query({
           index: {
             getAll: function getAll() {
@@ -2018,6 +2021,7 @@
             }
           }
         });
+
         var filtered = _query.filter(query).run();
         console.info(records, query, filtered);
         return [filtered, collectionRef];
