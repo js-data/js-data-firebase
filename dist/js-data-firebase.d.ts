@@ -1,7 +1,4 @@
 
-/// <reference path="../typings/browser/ambient/firebase/index.d.ts"/>
-//todo more tpyings for return types...
-
 import {Adapter} from 'js-data-adapter'
 
 interface IDict {

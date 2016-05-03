@@ -12,3 +12,4 @@ junit/
 dist/karma.start.js
 doc/
 typings/
+.vscode

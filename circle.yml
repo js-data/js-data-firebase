@@ -7,7 +7,6 @@ dependencies:
     - npm i -g npm
     - npm i -g bower
     - npm i js-data@^3.0.0-beta.3
-    - npm i firebase@>=2.4.x
     - bower i firebase@>=2.4.x
 
 test:

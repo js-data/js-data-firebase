@@ -1,6 +1,4 @@
 var babel = require('rollup-plugin-babel')
-var commonjs = require('rollup-plugin-commonjs')
-var nodeResolve = require('rollup-plugin-node-resolve')
 
 module.exports = {
   moduleName: 'JSDataFirebase',
@@ -10,19 +8,10 @@ module.exports = {
     'firebase'
   ],
   globals: {
-    'js-data': 'JSData'
+    'js-data': 'JSData',
+    'firebase': 'Firebase'
   },
   plugins: [
-    babel({
-      exclude: ['bower_components/firebase/**/*']
-    }),
-    nodeResolve({
-      jsnext: false,
-      main: true
-    }),
-    commonjs({
-      include: 'node_modules/mout/**',
-      sourceMap: true
-    })
+    babel()
   ]
 }

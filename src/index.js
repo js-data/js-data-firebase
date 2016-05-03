@@ -1,6 +1,6 @@
 import { Query, utils } from 'js-data'
 import { Adapter } from '../node_modules/js-data-adapter/src/index'
-import Firebase from 'firebase' // Help?
+import Firebase from 'firebase'
 
 function isValidString (value) {
   return (value != null && value !== '')
@@ -62,32 +62,36 @@ const DEFAULTS = {
    * @name FirebaseAdapter#basePath
    * @type {string}
    */
-  basePath: 'https://docs-examples.firebaseio.com/samplechat',
-
-  /**
-   * TODO
-   *
-   * @name FirebaseAdapter#debug
-   * @type {boolean}
-   * @default false
-   */
-  debug: false
+  basePath: ''
 }
+
+/**
+ * {@link FirebaseAdapter} class.
+ *
+ * @name module:js-data-firebase.FirebaseAdapter
+ * @see FirebaseAdapter
+ */
+
+/**
+ * {@link FirebaseAdapter} class. ES2015 default import.
+ *
+ * @name module:js-data-firebase.default
+ * @see FirebaseAdapter
+ */
 
 /**
  * FirebaseAdapter class.
  *
  * @example
  * import {DataStore} from 'js-data'
- * import FirebaseAdapter from 'js-data-firebase'
+ * import {FirebaseAdapter} from 'js-data-firebase'
  * const store = new DataStore()
  * const adapter = new FirebaseAdapter()
  * store.registerAdapter('firebase', adapter, { 'default': true })
  *
  * @class FirebaseAdapter
  * @param {Object} [opts] Configuration opts.
- * @param {string} [opts.basePath=''] TODO
- * @param {boolean} [opts.debug=false] TODO
+ * @param {string} [opts.basePath=''] See {@link FirebaseAdapter#basePath}
  */
 export function FirebaseAdapter (opts) {
   const self = this
@@ -103,7 +107,9 @@ export function FirebaseAdapter (opts) {
    * @name FirebaseAdapter#baseRef
    * @type {Object}
    */
-  self.baseRef = opts.baseRef || new Firebase(opts.basePath)
+  if (opts.baseRef || opts.basePath) {
+    self.baseRef = opts.baseRef || new Firebase(opts.basePath)
+  }
 }
 
 // Setup prototype inheritance from Adapter
@@ -124,13 +130,24 @@ Object.defineProperty(FirebaseAdapter, '__super__', {
 /**
  * Alternative to ES6 class syntax for extending `FirebaseAdapter`.
  *
- * @name FirebaseAdapter.extend
- * @method
+ * @example <caption>Using the ES2015 class syntax.</caption>
+ * class MyFirebaseAdapter extends FirebaseAdapter {...}
+ * const adapter = new MyFirebaseAdapter()
+ *
+ * @example <caption>Using {@link FirebaseAdapter.extend}.</caption>
+ * var instanceProps = {...}
+ * var classProps = {...}
+ *
+ * var MyFirebaseAdapter = FirebaseAdapter.extend(instanceProps, classProps)
+ * var adapter = new MyFirebaseAdapter()
+ *
+ * @method FirebaseAdapter.extend
+ * @static
  * @param {Object} [instanceProps] Properties that will be added to the
  * prototype of the subclass.
  * @param {Object} [classProps] Properties that will be added as static
  * properties to the subclass itself.
- * @return {Object} Subclass of `FirebaseAdapter`.
+ * @return {Constructor} Subclass of `FirebaseAdapter`.
  */
 FirebaseAdapter.extend = utils.extend
 
@@ -148,11 +165,9 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
    * @return {Promise}
    */
   _count (mapper, query, opts) {
-    const self = this
-    opts || (opts = {})
     query || (query = {})
-
-    return self._findAll(mapper, query, opts).then(function (result) {
+    opts || (opts = {})
+    return this._findAll(mapper, query, opts).then((result) => {
       result[0] = result[0].length
       return result
     })
@@ -170,10 +185,9 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
    * @return {Promise}
    */
   _create (mapper, props, opts) {
-    const self = this
     props || (props = {})
     opts || (opts = {})
-    return self._upsert(mapper, props, opts)
+    return this._upsert(mapper, props, opts)
   },
 
   _upsert (mapper, props, opts) {
@@ -248,14 +262,13 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
   },
 
   _atomicUpdate (refValueCollection) { // collection of refs and the new value to set at that ref
-    const self = this
     // do a deep-path update off the baseRef
     // see https://www.firebase.com/blog/2015-09-24-atomic-writes-and-more.html
     let atomicUpdate = {}
     refValueCollection.forEach((item) => {
-      atomicUpdate[item.ref.toString().replace(self.baseRef.toString(), '')] = item.props
+      atomicUpdate[item.ref.toString().replace(this.baseRef.toString(), '')] = item.props
     })
-    return self.baseRef.update(atomicUpdate)
+    return this.baseRef.update(atomicUpdate)
   },
 
   /**
@@ -271,11 +284,8 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
    * @return {Promise}
    */
   _createMany (mapper, records, opts) {
-    // todo check or enforce upsert?
-    const self = this
     opts || (opts = {})
-
-    return self._upsertBatch(mapper, records, opts)
+    return this._upsertBatch(mapper, records, opts)
   },
 
   /**
@@ -291,13 +301,9 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
    * @return {Promise}
    */
   _destroy (mapper, id, opts) {
-    const self = this
     opts || (opts = {})
-    let ref = self.getRef(mapper, opts).child(id)
-
-    return ref.remove().then(() => {
-      return [undefined, ref]
-    })
+    const ref = this.getRef(mapper, opts).child(id)
+    return ref.remove().then(() => [undefined, { ref }])
   },
 
   /**
@@ -313,19 +319,18 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
    * @return {Promise}
    */
   _destroyAll (mapper, query, opts) {
-    const self = this
-    opts || (opts = {})
     query || (query = {})
+    opts || (opts = {})
 
-    return self._findAll(mapper, query).then((results) => {
-      let [records] = results
-      return utils.Promise.all(records.map((record) => {
-        const id = utils.get(record, mapper.idAttribute)
-        return self._destroy(mapper, id, opts)
-      })).then(() => {
-        return [undefined, {}]
+    return this._findAll(mapper, query)
+      .then((results) => {
+        const [records] = results
+        const idAttribute = mapper.idAttribute
+        return utils.Promise.all(records.map((record) => {
+          return this._destroy(mapper, utils.get(record, idAttribute), opts)
+        }))
       })
-    })
+      .then(() => [undefined, {}])
   },
 
   /**
@@ -341,13 +346,9 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
    * @return {Promise}
    */
   _find (mapper, id, opts) {
-    const self = this
     opts || (opts = {})
-
-    let itemRef = self.getRef(mapper, opts).child(id)
-    return self._once(itemRef).then((record) => {
-      return [record, itemRef]
-    })
+    const itemRef = this.getRef(mapper, opts).child(id)
+    return this._once(itemRef).then((record) => [record, { ref: itemRef }])
   },
   /**
     * Retrieve the records that match the selection query. Internal method used
@@ -362,20 +363,20 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
     * @return {Promise}
     */
   _findAll (mapper, query, opts) {
-    const self = this
-    opts || (opts = {})
     query || (query = {})
+    opts || (opts = {})
 
-    let collectionRef = self.getRef(mapper, opts)
+    const collectionRef = this.getRef(mapper, opts)
 
     return collectionRef.once('value').then((dataSnapshot) => {
-      let data = dataSnapshot.val()
-      if (!data) return [[], collectionRef]
-      let records = []
+      const data = dataSnapshot.val()
+      if (!data) {
+        return [[], { ref: collectionRef }]
+      }
+      const records = []
       utils.forOwn(data, (value, key) => {
         records.push(value)
       })
-
       const _query = new Query({
         index: {
           getAll () {
@@ -383,10 +384,7 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
           }
         }
       })
-
-      var filtered = _query.filter(query).run()
-      console.info(records, query, filtered)
-      return [filtered, collectionRef]
+      return [_query.filter(query).run(), { ref: collectionRef }]
     })
   },
 
@@ -404,16 +402,8 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
    * @return {Promise}
    */
   _sum (mapper, field, query, opts) {
-    const self = this
-    opts || (opts = {})
-    query || (query = {})
-
-    return self._findAll(mapper, query, opts).then(function (result) {
-      let sum = 0
-      result[0].forEach(function (record) {
-        sum += utils.get(record, field) || 0
-      })
-      result[0] = sum
+    return this._findAll(mapper, query, opts).then((result) => {
+      result[0] = result[0].reduce((sum, record) => sum + (utils.get(record, field) || 0), 0)
       return result
     })
   },
@@ -432,25 +422,25 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
    * @return {Promise}
    */
   _update (mapper, id, props, opts) {
-    const self = this
     props || (props = {})
     opts || (opts = {})
 
-    let itemRef = self.getRef(mapper, opts).child(id)
-    return self._once(itemRef).then((currentVal) => {
-      if (!currentVal) {
-        throw new Error('Not Found')
-      }
-      utils.deepMixIn(currentVal, props)
-      return itemRef.set(currentVal).then(() => {
-        return self._once(itemRef).then((record) => {
-          if (!record) {
-            throw new Error('Not Found')
-          }
-          return [record, itemRef]
-        })
+    const itemRef = this.getRef(mapper, opts).child(id)
+    return this._once(itemRef)
+      .then((currentVal) => {
+        if (!currentVal) {
+          throw new Error('Not Found')
+        }
+        utils.deepMixIn(currentVal, props)
+        return itemRef.set(currentVal)
       })
-    })
+      .then(() => this._once(itemRef))
+      .then((record) => {
+        if (!record) {
+          throw new Error('Not Found')
+        }
+        return [record, { ref: itemRef }]
+      })
   },
 
   /**
@@ -467,15 +457,14 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
    * @return {Promise}
    */
   _updateAll (mapper, props, query, opts) {
-    const self = this
     opts || (opts = {})
     props || (props = {})
     query || (query = {})
 
-    return self._findAll(mapper, query, opts).then((results) => {
-      let [records] = results
-      records = records.map((record) => utils.deepMixIn(record, props))
-      return self._upsertBatch(mapper, records, opts)
+    return this._findAll(mapper, query, opts).then((results) => {
+      const [records] = results
+      records.forEach((record) => utils.deepMixIn(record, props))
+      return this._upsertBatch(mapper, records, opts)
     })
   },
 
@@ -492,81 +481,67 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
    * @return {Promise}
    */
   _updateMany (mapper, records, opts) {
-    const self = this
     opts || (opts = {})
-
-    return self._upsertBatch(mapper, records, opts)
+    return this._upsertBatch(mapper, records, opts)
   },
 
   getRef (mapper, opts) {
-    const self = this
     opts = opts || {}
-    return self.baseRef.child(opts.endpoint || mapper.endpoint || mapper.name)
+    return this.baseRef.child(opts.endpoint || mapper.endpoint || mapper.name)
   },
 
   create (mapper, props, opts) {
-    const self = this
-    props || (props = {})
-    return createTask(function (success, failure) {
-      queueTask(function () {
-        __super__.create.call(self, mapper, props, opts).then(success, failure)
+    return createTask((success, failure) => {
+      queueTask(() => {
+        __super__.create.call(this, mapper, props, opts).then(success, failure)
       })
     })
   },
 
   createMany (mapper, props, opts) {
-    const self = this
-    props || (props = {})
-    return createTask(function (success, failure) {
-      queueTask(function () {
-        __super__.createMany.call(self, mapper, props, opts).then(success, failure)
+    return createTask((success, failure) => {
+      queueTask(() => {
+        __super__.createMany.call(this, mapper, props, opts).then(success, failure)
       })
     })
   },
 
   destroy (mapper, id, opts) {
-    const self = this
-    return createTask(function (success, failure) {
-      queueTask(function () {
-        __super__.destroy.call(self, mapper, id, opts).then(success, failure)
+    return createTask((success, failure) => {
+      queueTask(() => {
+        __super__.destroy.call(this, mapper, id, opts).then(success, failure)
       })
     })
   },
 
   destroyAll (mapper, query, opts) {
-    const self = this
-    return createTask(function (success, failure) {
-      queueTask(function () {
-        __super__.destroyAll.call(self, mapper, query, opts).then(success, failure)
+    return createTask((success, failure) => {
+      queueTask(() => {
+        __super__.destroyAll.call(this, mapper, query, opts).then(success, failure)
       })
     })
   },
 
   update (mapper, id, props, opts) {
-    const self = this
-    props || (props = {})
-    return createTask(function (success, failure) {
-      queueTask(function () {
-        __super__.update.call(self, mapper, id, props, opts).then(success, failure)
+    return createTask((success, failure) => {
+      queueTask(() => {
+        __super__.update.call(this, mapper, id, props, opts).then(success, failure)
       })
     })
   },
 
   updateAll (mapper, props, query, opts) {
-    const self = this
-    props || (props = {})
-    return createTask(function (success, failure) {
-      queueTask(function () {
-        __super__.updateAll.call(self, mapper, props, query, opts).then(success, failure)
+    return createTask((success, failure) => {
+      queueTask(() => {
+        __super__.updateAll.call(this, mapper, props, query, opts).then(success, failure)
       })
     })
   },
 
   updateMany (mapper, records, opts) {
-    const self = this
-    return createTask(function (success, failure) {
-      queueTask(function () {
-        __super__.updateMany.call(self, mapper, records, opts).then(success, failure)
+    return createTask((success, failure) => {
+      queueTask(() => {
+        __super__.updateMany.call(this, mapper, records, opts).then(success, failure)
       })
     })
   }
@@ -592,22 +567,25 @@ export const version = '<%= version %>'
 /**
  * Registered as `js-data-firebase` in NPM and Bower.
  *
- * __Script tag__:
- * ```javascript
- * window.FirebaseAdapter
- * ```
- * __CommonJS__:
- * ```javascript
- * var FirebaseAdapter = require('js-data-firebase')
- * ```
- * __ES6 Modules__:
- * ```javascript
- * import FirebaseAdapter from 'js-data-firebase'
- * ```
- * __AMD__:
- * ```javascript
- * define('myApp', ['js-data-firebase'], function (FirebaseAdapter) { ... })
- * ```
+ * @example <caption>Script tag</caption>
+ * var FirebaseAdapter = window.JSDataFirebase.FirebaseAdapter
+ * var adapter = new FirebaseAdapter()
+ *
+ * @example <caption>CommonJS</caption>
+ * var FirebaseAdapter = require('js-data-firebase').FirebaseAdapter
+ * var adapter = new FirebaseAdapter()
+ *
+ * @example <caption>ES2015 Modules</caption>
+ * import {FirebaseAdapter} from 'js-data-firebase'
+ * const adapter = new FirebaseAdapter()
+ *
+ * @example <caption>AMD</caption>
+ * define('myApp', ['js-data-firebase'], function (JSDataFirebase) {
+ *   var FirebaseAdapter = JSDataFirebase.FirebaseAdapter
+ *   var adapter = new FirebaseAdapter()
+ *
+ *   // ...
+ * })
  *
  * @module js-data-firebase
  */

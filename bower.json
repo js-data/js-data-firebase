@@ -1,7 +1,7 @@
 {
   "name": "js-data-firebase",
   "description": "Firebase adapter for js-data.",
-  "homepage": "http://www.js-data.io/docs/firebaseadapter",
+  "homepage": "https://github.com/js-data-js-data-firebase",
   "repository": {
     "type": "git",
     "url": "https://github.com/js-data/js-data-firebase.git"

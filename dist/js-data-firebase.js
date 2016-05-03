@@ -1,6 +1,6 @@
 /*!
 * js-data-firebase
-* @version 3.0.0-alpha.1 - Homepage <https://github.com/js-data/js-data-firebase>
+* @version 3.0.0-beta.1 - Homepage <https://github.com/js-data/js-data-firebase>
 * @author Jason Dobry <jason.dobry@gmail.com>
 * @copyright (c) 2014-2016 Jason Dobry
 * @license MIT <https://github.com/js-data/js-data-firebase/blob/master/LICENSE>
@@ -1691,32 +1691,36 @@
      * @name FirebaseAdapter#basePath
      * @type {string}
      */
-    basePath: 'https://docs-examples.firebaseio.com/samplechat',
-
-    /**
-     * TODO
-     *
-     * @name FirebaseAdapter#debug
-     * @type {boolean}
-     * @default false
-     */
-    debug: false
+    basePath: ''
   };
+
+  /**
+   * {@link FirebaseAdapter} class.
+   *
+   * @name module:js-data-firebase.FirebaseAdapter
+   * @see FirebaseAdapter
+   */
+
+  /**
+   * {@link FirebaseAdapter} class. ES2015 default import.
+   *
+   * @name module:js-data-firebase.default
+   * @see FirebaseAdapter
+   */
 
   /**
    * FirebaseAdapter class.
    *
    * @example
    * import {DataStore} from 'js-data'
-   * import FirebaseAdapter from 'js-data-firebase'
+   * import {FirebaseAdapter} from 'js-data-firebase'
    * const store = new DataStore()
    * const adapter = new FirebaseAdapter()
    * store.registerAdapter('firebase', adapter, { 'default': true })
    *
    * @class FirebaseAdapter
    * @param {Object} [opts] Configuration opts.
-   * @param {string} [opts.basePath=''] TODO
-   * @param {boolean} [opts.debug=false] TODO
+   * @param {string} [opts.basePath=''] See {@link FirebaseAdapter#basePath}
    */
   function FirebaseAdapter(opts) {
     var self = this;
@@ -1732,7 +1736,9 @@
      * @name FirebaseAdapter#baseRef
      * @type {Object}
      */
-    self.baseRef = opts.baseRef || new Firebase(opts.basePath);
+    if (opts.baseRef || opts.basePath) {
+      self.baseRef = opts.baseRef || new Firebase(opts.basePath);
+    }
   }
 
   // Setup prototype inheritance from Adapter
@@ -1753,13 +1759,24 @@
   /**
    * Alternative to ES6 class syntax for extending `FirebaseAdapter`.
    *
-   * @name FirebaseAdapter.extend
-   * @method
+   * @example <caption>Using the ES2015 class syntax.</caption>
+   * class MyFirebaseAdapter extends FirebaseAdapter {...}
+   * const adapter = new MyFirebaseAdapter()
+   *
+   * @example <caption>Using {@link FirebaseAdapter.extend}.</caption>
+   * var instanceProps = {...}
+   * var classProps = {...}
+   *
+   * var MyFirebaseAdapter = FirebaseAdapter.extend(instanceProps, classProps)
+   * var adapter = new MyFirebaseAdapter()
+   *
+   * @method FirebaseAdapter.extend
+   * @static
    * @param {Object} [instanceProps] Properties that will be added to the
    * prototype of the subclass.
    * @param {Object} [classProps] Properties that will be added as static
    * properties to the subclass itself.
-   * @return {Object} Subclass of `FirebaseAdapter`.
+   * @return {Constructor} Subclass of `FirebaseAdapter`.
    */
   FirebaseAdapter.extend = jsData.utils.extend;
 
@@ -1778,11 +1795,9 @@
      */
 
     _count: function _count(mapper, query, opts) {
-      var self = this;
-      opts || (opts = {});
       query || (query = {});
-
-      return self._findAll(mapper, query, opts).then(function (result) {
+      opts || (opts = {});
+      return this._findAll(mapper, query, opts).then(function (result) {
         result[0] = result[0].length;
         return result;
       });
@@ -1801,10 +1816,9 @@
      * @return {Promise}
      */
     _create: function _create(mapper, props, opts) {
-      var self = this;
       props || (props = {});
       opts || (opts = {});
-      return self._upsert(mapper, props, opts);
+      return this._upsert(mapper, props, opts);
     },
     _upsert: function _upsert(mapper, props, opts) {
       var self = this;
@@ -1877,15 +1891,16 @@
       });
     },
     _atomicUpdate: function _atomicUpdate(refValueCollection) {
+      var _this = this;
+
       // collection of refs and the new value to set at that ref
-      var self = this;
       // do a deep-path update off the baseRef
       // see https://www.firebase.com/blog/2015-09-24-atomic-writes-and-more.html
       var atomicUpdate = {};
       refValueCollection.forEach(function (item) {
-        atomicUpdate[item.ref.toString().replace(self.baseRef.toString(), '')] = item.props;
+        atomicUpdate[item.ref.toString().replace(_this.baseRef.toString(), '')] = item.props;
       });
-      return self.baseRef.update(atomicUpdate);
+      return this.baseRef.update(atomicUpdate);
     },
 
 
@@ -1902,11 +1917,8 @@
      * @return {Promise}
      */
     _createMany: function _createMany(mapper, records, opts) {
-      // todo check or enforce upsert?
-      var self = this;
       opts || (opts = {});
-
-      return self._upsertBatch(mapper, records, opts);
+      return this._upsertBatch(mapper, records, opts);
     },
 
 
@@ -1923,12 +1935,10 @@
      * @return {Promise}
      */
     _destroy: function _destroy(mapper, id, opts) {
-      var self = this;
       opts || (opts = {});
-      var ref = self.getRef(mapper, opts).child(id);
-
+      var ref = this.getRef(mapper, opts).child(id);
       return ref.remove().then(function () {
-        return [undefined, ref];
+        return [undefined, { ref: ref }];
       });
     },
 
@@ -1946,21 +1956,22 @@
      * @return {Promise}
      */
     _destroyAll: function _destroyAll(mapper, query, opts) {
-      var self = this;
-      opts || (opts = {});
-      query || (query = {});
+      var _this2 = this;
 
-      return self._findAll(mapper, query).then(function (results) {
+      query || (query = {});
+      opts || (opts = {});
+
+      return this._findAll(mapper, query).then(function (results) {
         var _results = babelHelpers.slicedToArray(results, 1);
 
         var records = _results[0];
 
+        var idAttribute = mapper.idAttribute;
         return jsData.utils.Promise.all(records.map(function (record) {
-          var id = jsData.utils.get(record, mapper.idAttribute);
-          return self._destroy(mapper, id, opts);
-        })).then(function () {
-          return [undefined, {}];
-        });
+          return _this2._destroy(mapper, jsData.utils.get(record, idAttribute), opts);
+        }));
+      }).then(function () {
+        return [undefined, {}];
       });
     },
 
@@ -1978,12 +1989,10 @@
      * @return {Promise}
      */
     _find: function _find(mapper, id, opts) {
-      var self = this;
       opts || (opts = {});
-
-      var itemRef = self.getRef(mapper, opts).child(id);
-      return self._once(itemRef).then(function (record) {
-        return [record, itemRef];
+      var itemRef = this.getRef(mapper, opts).child(id);
+      return this._once(itemRef).then(function (record) {
+        return [record, { ref: itemRef }];
       });
     },
 
@@ -2000,20 +2009,20 @@
       * @return {Promise}
       */
     _findAll: function _findAll(mapper, query, opts) {
-      var self = this;
-      opts || (opts = {});
       query || (query = {});
+      opts || (opts = {});
 
-      var collectionRef = self.getRef(mapper, opts);
+      var collectionRef = this.getRef(mapper, opts);
 
       return collectionRef.once('value').then(function (dataSnapshot) {
         var data = dataSnapshot.val();
-        if (!data) return [[], collectionRef];
+        if (!data) {
+          return [[], { ref: collectionRef }];
+        }
         var records = [];
         jsData.utils.forOwn(data, function (value, key) {
           records.push(value);
         });
-
         var _query = new jsData.Query({
           index: {
             getAll: function getAll() {
@@ -2021,10 +2030,7 @@
             }
           }
         });
-
-        var filtered = _query.filter(query).run();
-        console.info(records, query, filtered);
-        return [filtered, collectionRef];
+        return [_query.filter(query).run(), { ref: collectionRef }];
       });
     },
 
@@ -2043,16 +2049,10 @@
      * @return {Promise}
      */
     _sum: function _sum(mapper, field, query, opts) {
-      var self = this;
-      opts || (opts = {});
-      query || (query = {});
-
-      return self._findAll(mapper, query, opts).then(function (result) {
-        var sum = 0;
-        result[0].forEach(function (record) {
-          sum += jsData.utils.get(record, field) || 0;
-        });
-        result[0] = sum;
+      return this._findAll(mapper, query, opts).then(function (result) {
+        result[0] = result[0].reduce(function (sum, record) {
+          return sum + (jsData.utils.get(record, field) || 0);
+        }, 0);
         return result;
       });
     },
@@ -2072,24 +2072,25 @@
      * @return {Promise}
      */
     _update: function _update(mapper, id, props, opts) {
-      var self = this;
+      var _this3 = this;
+
       props || (props = {});
       opts || (opts = {});
 
-      var itemRef = self.getRef(mapper, opts).child(id);
-      return self._once(itemRef).then(function (currentVal) {
+      var itemRef = this.getRef(mapper, opts).child(id);
+      return this._once(itemRef).then(function (currentVal) {
         if (!currentVal) {
           throw new Error('Not Found');
         }
         jsData.utils.deepMixIn(currentVal, props);
-        return itemRef.set(currentVal).then(function () {
-          return self._once(itemRef).then(function (record) {
-            if (!record) {
-              throw new Error('Not Found');
-            }
-            return [record, itemRef];
-          });
-        });
+        return itemRef.set(currentVal);
+      }).then(function () {
+        return _this3._once(itemRef);
+      }).then(function (record) {
+        if (!record) {
+          throw new Error('Not Found');
+        }
+        return [record, { ref: itemRef }];
       });
     },
 
@@ -2108,20 +2109,21 @@
      * @return {Promise}
      */
     _updateAll: function _updateAll(mapper, props, query, opts) {
-      var self = this;
+      var _this4 = this;
+
       opts || (opts = {});
       props || (props = {});
       query || (query = {});
 
-      return self._findAll(mapper, query, opts).then(function (results) {
+      return this._findAll(mapper, query, opts).then(function (results) {
         var _results2 = babelHelpers.slicedToArray(results, 1);
 
         var records = _results2[0];
 
-        records = records.map(function (record) {
+        records.forEach(function (record) {
           return jsData.utils.deepMixIn(record, props);
         });
-        return self._upsertBatch(mapper, records, opts);
+        return _this4._upsertBatch(mapper, records, opts);
       });
     },
 
@@ -2139,73 +2141,73 @@
      * @return {Promise}
      */
     _updateMany: function _updateMany(mapper, records, opts) {
-      var self = this;
       opts || (opts = {});
-
-      return self._upsertBatch(mapper, records, opts);
+      return this._upsertBatch(mapper, records, opts);
     },
     getRef: function getRef(mapper, opts) {
-      var self = this;
       opts = opts || {};
-      return self.baseRef.child(opts.endpoint || mapper.endpoint || mapper.name);
+      return this.baseRef.child(opts.endpoint || mapper.endpoint || mapper.name);
     },
     create: function create(mapper, props, opts) {
-      var self = this;
-      props || (props = {});
+      var _this5 = this;
+
       return createTask(function (success, failure) {
         queueTask(function () {
-          __super__.create.call(self, mapper, props, opts).then(success, failure);
+          __super__.create.call(_this5, mapper, props, opts).then(success, failure);
         });
       });
     },
     createMany: function createMany(mapper, props, opts) {
-      var self = this;
-      props || (props = {});
+      var _this6 = this;
+
       return createTask(function (success, failure) {
         queueTask(function () {
-          __super__.createMany.call(self, mapper, props, opts).then(success, failure);
+          __super__.createMany.call(_this6, mapper, props, opts).then(success, failure);
         });
       });
     },
     destroy: function destroy(mapper, id, opts) {
-      var self = this;
+      var _this7 = this;
+
       return createTask(function (success, failure) {
         queueTask(function () {
-          __super__.destroy.call(self, mapper, id, opts).then(success, failure);
+          __super__.destroy.call(_this7, mapper, id, opts).then(success, failure);
         });
       });
     },
     destroyAll: function destroyAll(mapper, query, opts) {
-      var self = this;
+      var _this8 = this;
+
       return createTask(function (success, failure) {
         queueTask(function () {
-          __super__.destroyAll.call(self, mapper, query, opts).then(success, failure);
+          __super__.destroyAll.call(_this8, mapper, query, opts).then(success, failure);
         });
       });
     },
     update: function update(mapper, id, props, opts) {
-      var self = this;
-      props || (props = {});
+      var _this9 = this;
+
       return createTask(function (success, failure) {
         queueTask(function () {
-          __super__.update.call(self, mapper, id, props, opts).then(success, failure);
+          __super__.update.call(_this9, mapper, id, props, opts).then(success, failure);
         });
       });
     },
     updateAll: function updateAll(mapper, props, query, opts) {
-      var self = this;
-      props || (props = {});
+      var _this10 = this;
+
       return createTask(function (success, failure) {
         queueTask(function () {
-          __super__.updateAll.call(self, mapper, props, query, opts).then(success, failure);
+          __super__.updateAll.call(_this10, mapper, props, query, opts).then(success, failure);
         });
       });
     },
     updateMany: function updateMany(mapper, records, opts) {
-      var self = this;
+      var _this11 = this;
+
       return createTask(function (success, failure) {
         queueTask(function () {
-          __super__.updateMany.call(self, mapper, records, opts).then(success, failure);
+          __super__.updateMany.call(_this11, mapper, records, opts).then(success, failure);
         });
       });
     }
@@ -2227,8 +2229,8 @@
    */
 
   var version = {
-  alpha: 1,
-  full: '3.0.0-alpha.1',
+  beta: 1,
+  full: '3.0.0-beta.1',
   major: 3,
   minor: 0,
   patch: 0
