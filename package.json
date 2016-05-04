@@ -1,22 +1,21 @@
 {
   "name": "js-data-firebase",
   "description": "Firebase adapter for js-data.",
-  "version": "2.1.1",
-  "homepage": "http://www.js-data.io/docs/dsfirebaseadapter",
+  "version": "3.0.0-beta.1",
+  "homepage": "https://github.com/js-data/js-data-firebase",
   "repository": {
     "type": "git",
     "url": "https://github.com/js-data/js-data-firebase.git"
   },
-  "author": {
-    "name": "Jason Dobry",
-    "url": "http://www.pseudobry.com",
-    "email": "jason.dobry@gmail.com"
-  },
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "https://github.com/js-data/js-data-firebase/blob/master/LICENSE"
-    }
+  "author": "js-data-firebase project authors",
+  "license": "MIT",
+  "main": "./dist/js-data-firebase.js",
+  "typings": "./dist/js-data-firebase.d.ts",
+  "files": [
+    "dist/",
+    "src/",
+    "AUTHORS",
+    "CONTRIBUTORS"
   ],
   "keywords": [
     "data",
@@ -24,43 +23,64 @@
     "store",
     "database",
     "adapter",
+    "js-data",
+    "JSData",
     "firebase"
   ],
-  "main": "./dist/js-data-firebase.js",
-  "devDependencies": {
-    "babel-core": "5.6.15",
-    "babel-loader": "5.2.2",
-    "grunt": "0.4.5",
-    "grunt-contrib-clean": "0.6.0",
-    "grunt-contrib-uglify": "0.9.1",
-    "grunt-contrib-watch": "0.6.1",
-    "grunt-karma": "0.11.2",
-    "grunt-karma-coveralls": "2.5.3",
-    "grunt-webpack": "1.0.11",
-    "jit-grunt": "0.9.1",
-    "jshint": "2.8.0",
-    "jshint-loader": "0.8.3",
-    "karma": "0.12.37",
-    "karma-chai": "0.1.0",
-    "karma-chrome-launcher": "0.2.0",
-    "karma-coverage": "0.4.2",
-    "karma-firefox-launcher": "0.1.6",
-    "karma-mocha": "0.2.0",
-    "karma-phantomjs-launcher": "0.2.0",
-    "karma-script-launcher": "0.1.0",
-    "karma-sinon": "1.0.4",
-    "karma-spec-reporter": "0.0.19",
-    "time-grunt": "1.2.1",
-    "webpack-dev-server": "1.10.1"
+  "standard": {
+    "parser": "babel-eslint",
+    "globals": [
+      "beforeEach",
+      "describe",
+      "assert",
+      "JSDataAdapterTests",
+      "it",
+      "JSData",
+      "FirebaseAdapter"
+    ],
+    "ignore": [
+      "dist/",
+      "example/"
+    ]
+  },
+  "babel": {
+    "presets": [
+      "es2015-rollup"
+    ]
   },
   "scripts": {
-    "test": "grunt test"
-  },
-  "dependencies": {
-    "mout": "0.11.0"
+    "lint": "repo-tools lint \"**/*.js\"",
+    "bundle": "rollup src/index.js -c -o dist/js-data-firebase.js -m dist/js-data-firebase.js.map -f umd && repo-tools write-version dist/js-data-firebase.js",
+    "doc": "jsdoc -c conf.json src node_modules/js-data-adapter/src",
+    "min": "uglifyjs dist/js-data-firebase.js -o dist/js-data-firebase.min.js --source-map dist/js-data-firebase.min.map --source-map-url js-data-firebase.min.map -v -m -c --screw-ie8",
+    "banner": "node scripts/banner.js",
+    "build": "npm run lint && npm run bundle && npm run min && npm run banner",
+    "karma": "karma start",
+    "test": "npm run build && npm run karma",
+    "release": "npm test && npm run doc && repo-tools updates && repo-tools changelog && repo-tools authors",
+    "ci": "npm test && cat ./coverage/PhantomJS*/lcov.info | codecov"
   },
   "peerDependencies": {
-    "js-data": ">=2.0.0",
-    "firebase": ">=1.1.x"
+    "js-data": "^3.0.0-beta.3",
+    "firebase": ">=2.4.x"
+  },
+  "devDependencies": {
+    "babel-polyfill": "6.8.0",
+    "babel-preset-es2015-rollup": "1.1.1",
+    "js-data-adapter": "0.6.1",
+    "js-data-adapter-tests": "^2.0.0-alpha.21",
+    "js-data-repo-tools": "0.5.0",
+    "karma": "0.13.22",
+    "karma-browserstack-launcher": "1.0.0",
+    "karma-chai": "0.1.0",
+    "karma-coverage": "1.0.0",
+    "karma-mocha": "1.0.1",
+    "karma-phantomjs-launcher": "1.0.0",
+    "karma-sinon": "1.0.4",
+    "mout": "1.0.0",
+    "phantomjs-prebuilt": "2.1.7",
+    "rollup": "0.26.2",
+    "rollup-plugin-babel": "2.4.0",
+    "uglify-js": "2.6.2"
   }
 }

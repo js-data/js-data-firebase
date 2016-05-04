@@ -1,3 +1,37 @@
+##### 3.0.0-beta.1 - 03 May 2016
+
+Official v3 beta release
+
+###### Breaking changes
+- Now depends on js-data v3
+- How you must now import in ES2015:
+
+    ```js
+    import FirebaseAdapter from 'js-data-firebase'
+    const adapter = new FirebaseAdapter({ basePath: '<your-firebase-url>' })
+    ```
+    or
+    ```js
+    import {FirebaseAdapter, version} from 'js-data-firebase'
+    console.log(version)
+    const adapter = new FirebaseAdapter()
+    ```
+
+- How you must now import in ES5:
+
+    ```js
+    var JSDataFirebase = require('js-data-firebase')
+    var FirebaseAdapter = JSDataFirebase.FirebaseAdapter
+    var adapter = new FirebaseAdapter({ basePath: '<your-firebase-url>' })
+    ```
+
+- Moved some `dist` files to `release` to reduce noise
+
+###### Other
+- Upgraded dependencies
+- Improved JSDoc comments
+- Now using js-data JSDoc template
+
 ##### 2.1.1 - 10 July 2015
 
 ###### Backwards compatible bug fixes

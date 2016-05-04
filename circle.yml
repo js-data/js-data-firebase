@@ -1,8 +1,20 @@
+general:
+  branches:
+    ignore:
+      - gh-pages
+machine:
+  node:
+    version: 5.0.0
 dependencies:
   pre:
-    - bower install
-  cache_directories:
-    - "bower_components"
+    - npm i -g npm
+    - npm i -g bower
+    - npm i js-data@^3.0.0-beta.3
+    - bower i
 test:
-  post:
-    - grunt coveralls || true
+  override:
+    - npm run ci
+general:
+  artifacts:
+    - "dist"
+    - "coverage"
