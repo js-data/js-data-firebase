@@ -1669,7 +1669,7 @@
   }
 
   function createTask(fn) {
-    return new Promise(fn).then(function (result) {
+    return new jsData.utils.Promise(fn).then(function (result) {
       taskInProcess = false;
       queue.shift();
       setTimeout(dequeue, 0);
@@ -1723,11 +1723,10 @@
    * @param {string} [opts.basePath=''] See {@link FirebaseAdapter#basePath}
    */
   function FirebaseAdapter(opts) {
-    var self = this;
-    jsData.utils.classCallCheck(self, FirebaseAdapter);
+    jsData.utils.classCallCheck(this, FirebaseAdapter);
     opts || (opts = {});
     jsData.utils.fillIn(opts, DEFAULTS);
-    Adapter.call(self, opts);
+    Adapter.call(this, opts);
 
     /**
      * The ref instance used by this adapter. Use this directly when you
@@ -1737,7 +1736,7 @@
      * @type {Object}
      */
     if (opts.baseRef || opts.basePath) {
-      self.baseRef = opts.baseRef || new Firebase(opts.basePath);
+      this.baseRef = opts.baseRef || new Firebase(opts.basePath);
     }
   }
 
@@ -1821,16 +1820,17 @@
       return this._upsert(mapper, props, opts);
     },
     _upsert: function _upsert(mapper, props, opts) {
-      var self = this;
-      var _props = jsData.utils.copy(props);
+      var _this = this;
+
+      var _props = jsData.utils.plainCopy(props);
       opts || (opts = {});
 
       var id = jsData.utils.get(_props, mapper.idAttribute);
-      var collectionRef = self.getRef(mapper, opts);
+      var collectionRef = this.getRef(mapper, opts);
 
       var itemRef = void 0;
 
-      if (jsData.utils.isString(id) || jsData.utils.isNumber(id)) {
+      if (jsData.utils.isSorN(id)) {
         itemRef = collectionRef.child(id);
       } else {
         itemRef = collectionRef.push();
@@ -1838,48 +1838,48 @@
       }
 
       return itemRef.set(_props).then(function () {
-        return self._once(itemRef).then(function (record) {
-          if (!record) {
-            throw new Error('Not Found');
-          }
-          return [record, itemRef];
-        });
+        return _this._once(itemRef);
+      }).then(function (record) {
+        if (!record) {
+          throw new Error('Not Found');
+        }
+        return [record, { ref: itemRef }];
       });
     },
     _upsertBatch: function _upsertBatch(mapper, records, opts) {
-      var self = this;
+      var _this2 = this;
+
       opts || (opts = {});
 
+      var idAttribute = mapper.idAttribute;
       var refValueCollection = [];
-      var collectionRef = self.getRef(mapper, opts);
+      var collectionRef = this.getRef(mapper, opts);
 
       // generate path for each
       records.forEach(function (record) {
-        var id = jsData.utils.get(record, mapper.idAttribute);
-        var _props = jsData.utils.copy(record);
+        var id = jsData.utils.get(record, idAttribute);
+        var _props = jsData.utils.plainCopy(record);
         var itemRef = void 0;
 
-        if (jsData.utils.isString(id) || jsData.utils.isNumber(id)) {
+        if (jsData.utils.isSorN(id)) {
           itemRef = collectionRef.child(id);
         } else {
           itemRef = collectionRef.push();
-          jsData.utils.set(_props, mapper.idAttribute, itemRef.key());
+          jsData.utils.set(_props, idAttribute, itemRef.key());
         }
         refValueCollection.push({ ref: itemRef, props: _props });
       });
 
-      return self._atomicUpdate(refValueCollection).then(function () {
+      return this._atomicUpdate(refValueCollection).then(function () {
         // since UDFs and timestamps can alter values on write, let's get the latest values
         return jsData.utils.Promise.all(refValueCollection.map(function (item) {
-          return self._once(item.ref).then(function (record) {
-            return [record, item.ref];
-          });
-        })).then(function () {
-          // just return the updated records and not the refs?
-          return [refValueCollection.map(function (item) {
-            return item.props;
-          }), refValueCollection];
-        });
+          return _this2._once(item.ref);
+        }));
+      }).then(function (records) {
+        // just return the updated records and not the refs?
+        return [records, { ref: refValueCollection.map(function (item) {
+            return item.ref;
+          }) }];
       });
     },
     _once: function _once(ref) {
@@ -1891,14 +1891,14 @@
       });
     },
     _atomicUpdate: function _atomicUpdate(refValueCollection) {
-      var _this = this;
+      var _this3 = this;
 
       // collection of refs and the new value to set at that ref
       // do a deep-path update off the baseRef
       // see https://www.firebase.com/blog/2015-09-24-atomic-writes-and-more.html
       var atomicUpdate = {};
       refValueCollection.forEach(function (item) {
-        atomicUpdate[item.ref.toString().replace(_this.baseRef.toString(), '')] = item.props;
+        atomicUpdate[item.ref.toString().replace(_this3.baseRef.toString(), '')] = item.props;
       });
       return this.baseRef.update(atomicUpdate);
     },
@@ -1956,7 +1956,7 @@
      * @return {Promise}
      */
     _destroyAll: function _destroyAll(mapper, query, opts) {
-      var _this2 = this;
+      var _this4 = this;
 
       query || (query = {});
       opts || (opts = {});
@@ -1968,7 +1968,7 @@
 
         var idAttribute = mapper.idAttribute;
         return jsData.utils.Promise.all(records.map(function (record) {
-          return _this2._destroy(mapper, jsData.utils.get(record, idAttribute), opts);
+          return _this4._destroy(mapper, jsData.utils.get(record, idAttribute), opts);
         }));
       }).then(function () {
         return [undefined, {}];
@@ -2072,7 +2072,7 @@
      * @return {Promise}
      */
     _update: function _update(mapper, id, props, opts) {
-      var _this3 = this;
+      var _this5 = this;
 
       props || (props = {});
       opts || (opts = {});
@@ -2085,7 +2085,7 @@
         jsData.utils.deepMixIn(currentVal, props);
         return itemRef.set(currentVal);
       }).then(function () {
-        return _this3._once(itemRef);
+        return _this5._once(itemRef);
       }).then(function (record) {
         if (!record) {
           throw new Error('Not Found');
@@ -2109,7 +2109,7 @@
      * @return {Promise}
      */
     _updateAll: function _updateAll(mapper, props, query, opts) {
-      var _this4 = this;
+      var _this6 = this;
 
       opts || (opts = {});
       props || (props = {});
@@ -2123,7 +2123,7 @@
         records.forEach(function (record) {
           return jsData.utils.deepMixIn(record, props);
         });
-        return _this4._upsertBatch(mapper, records, opts);
+        return _this6._upsertBatch(mapper, records, opts);
       });
     },
 
@@ -2149,65 +2149,65 @@
       return this.baseRef.child(opts.endpoint || mapper.endpoint || mapper.name);
     },
     create: function create(mapper, props, opts) {
-      var _this5 = this;
-
-      return createTask(function (success, failure) {
-        queueTask(function () {
-          __super__.create.call(_this5, mapper, props, opts).then(success, failure);
-        });
-      });
-    },
-    createMany: function createMany(mapper, props, opts) {
-      var _this6 = this;
-
-      return createTask(function (success, failure) {
-        queueTask(function () {
-          __super__.createMany.call(_this6, mapper, props, opts).then(success, failure);
-        });
-      });
-    },
-    destroy: function destroy(mapper, id, opts) {
       var _this7 = this;
 
       return createTask(function (success, failure) {
         queueTask(function () {
-          __super__.destroy.call(_this7, mapper, id, opts).then(success, failure);
+          __super__.create.call(_this7, mapper, props, opts).then(success, failure);
         });
       });
     },
-    destroyAll: function destroyAll(mapper, query, opts) {
+    createMany: function createMany(mapper, props, opts) {
       var _this8 = this;
 
       return createTask(function (success, failure) {
         queueTask(function () {
-          __super__.destroyAll.call(_this8, mapper, query, opts).then(success, failure);
+          __super__.createMany.call(_this8, mapper, props, opts).then(success, failure);
         });
       });
     },
-    update: function update(mapper, id, props, opts) {
+    destroy: function destroy(mapper, id, opts) {
       var _this9 = this;
 
       return createTask(function (success, failure) {
         queueTask(function () {
-          __super__.update.call(_this9, mapper, id, props, opts).then(success, failure);
+          __super__.destroy.call(_this9, mapper, id, opts).then(success, failure);
         });
       });
     },
-    updateAll: function updateAll(mapper, props, query, opts) {
+    destroyAll: function destroyAll(mapper, query, opts) {
       var _this10 = this;
 
       return createTask(function (success, failure) {
         queueTask(function () {
-          __super__.updateAll.call(_this10, mapper, props, query, opts).then(success, failure);
+          __super__.destroyAll.call(_this10, mapper, query, opts).then(success, failure);
         });
       });
     },
-    updateMany: function updateMany(mapper, records, opts) {
+    update: function update(mapper, id, props, opts) {
       var _this11 = this;
 
       return createTask(function (success, failure) {
         queueTask(function () {
-          __super__.updateMany.call(_this11, mapper, records, opts).then(success, failure);
+          __super__.update.call(_this11, mapper, id, props, opts).then(success, failure);
+        });
+      });
+    },
+    updateAll: function updateAll(mapper, props, query, opts) {
+      var _this12 = this;
+
+      return createTask(function (success, failure) {
+        queueTask(function () {
+          __super__.updateAll.call(_this12, mapper, props, query, opts).then(success, failure);
+        });
+      });
+    },
+    updateMany: function updateMany(mapper, records, opts) {
+      var _this13 = this;
+
+      return createTask(function (success, failure) {
+        queueTask(function () {
+          __super__.updateMany.call(_this13, mapper, records, opts).then(success, failure);
         });
       });
     }

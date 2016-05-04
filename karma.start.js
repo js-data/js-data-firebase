@@ -10,7 +10,7 @@ JSDataAdapterTests.init({
     debug: false,
     basePath: 'https://js-data-firebase-v3.firebaseio.com/'
   },
-  // //js-data-firebase does NOT support these features
+  // js-data-firebase does NOT support these features
   xfeatures: [
     'findAllOpNotFound',
     'filterOnRelations'

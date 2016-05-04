@@ -40,12 +40,12 @@ function queueTask (task) {
 }
 
 function createTask (fn) {
-  return new Promise(fn).then(function (result) {
+  return new utils.Promise(fn).then((result) => {
     taskInProcess = false
     queue.shift()
     setTimeout(dequeue, 0)
     return result
-  }, function (err) {
+  }, (err) => {
     taskInProcess = false
     queue.shift()
     setTimeout(dequeue, 0)
@@ -94,11 +94,10 @@ const DEFAULTS = {
  * @param {string} [opts.basePath=''] See {@link FirebaseAdapter#basePath}
  */
 export function FirebaseAdapter (opts) {
-  const self = this
-  utils.classCallCheck(self, FirebaseAdapter)
+  utils.classCallCheck(this, FirebaseAdapter)
   opts || (opts = {})
   utils.fillIn(opts, DEFAULTS)
-  Adapter.call(self, opts)
+  Adapter.call(this, opts)
 
   /**
    * The ref instance used by this adapter. Use this directly when you
@@ -108,7 +107,7 @@ export function FirebaseAdapter (opts) {
    * @type {Object}
    */
   if (opts.baseRef || opts.basePath) {
-    self.baseRef = opts.baseRef || new Firebase(opts.basePath)
+    this.baseRef = opts.baseRef || new Firebase(opts.basePath)
   }
 }
 
@@ -191,65 +190,62 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
   },
 
   _upsert (mapper, props, opts) {
-    const self = this
-    const _props = utils.copy(props)
+    const _props = utils.plainCopy(props)
     opts || (opts = {})
 
     const id = utils.get(_props, mapper.idAttribute)
-    const collectionRef = self.getRef(mapper, opts)
+    const collectionRef = this.getRef(mapper, opts)
 
     let itemRef
 
-    if (utils.isString(id) || utils.isNumber(id)) {
+    if (utils.isSorN(id)) {
       itemRef = collectionRef.child(id)
     } else {
       itemRef = collectionRef.push()
       utils.set(_props, mapper.idAttribute, itemRef.key())
     }
 
-    return itemRef.set(_props).then(() => {
-      return self._once(itemRef).then((record) => {
+    return itemRef.set(_props)
+      .then(() => this._once(itemRef))
+      .then((record) => {
         if (!record) {
           throw new Error('Not Found')
         }
-        return [record, itemRef]
+        return [record, { ref: itemRef }]
       })
-    })
   },
 
   _upsertBatch (mapper, records, opts) {
-    const self = this
     opts || (opts = {})
 
+    const idAttribute = mapper.idAttribute
     const refValueCollection = []
-    const collectionRef = self.getRef(mapper, opts)
+    const collectionRef = this.getRef(mapper, opts)
 
     // generate path for each
     records.forEach((record) => {
-      const id = utils.get(record, mapper.idAttribute)
-      let _props = utils.copy(record)
+      const id = utils.get(record, idAttribute)
+      let _props = utils.plainCopy(record)
       let itemRef
 
-      if (utils.isString(id) || utils.isNumber(id)) {
+      if (utils.isSorN(id)) {
         itemRef = collectionRef.child(id)
       } else {
         itemRef = collectionRef.push()
-        utils.set(_props, mapper.idAttribute, itemRef.key())
+        utils.set(_props, idAttribute, itemRef.key())
       }
       refValueCollection.push({ ref: itemRef, props: _props })
     })
 
-    return self._atomicUpdate(refValueCollection).then(() => {
-      // since UDFs and timestamps can alter values on write, let's get the latest values
-      return utils.Promise.all(refValueCollection.map((item) => {
-        return self._once(item.ref).then((record) => {
-          return [record, item.ref]
-        })
-      })).then(() => {
-        // just return the updated records and not the refs?
-        return [refValueCollection.map((item) => item.props), refValueCollection]
+    return this._atomicUpdate(refValueCollection)
+      .then(() => {
+        // since UDFs and timestamps can alter values on write, let's get the latest values
+        return utils.Promise.all(refValueCollection.map((item) => this._once(item.ref)))
       })
-    })
+      .then((records) => {
+        // just return the updated records and not the refs?
+        return [records, { ref: refValueCollection.map((item) => item.ref) }]
+      })
   },
 
   _once (ref) {

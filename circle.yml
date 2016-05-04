@@ -1,14 +1,16 @@
+general:
+  branches:
+    ignore:
+      - gh-pages
 machine:
   node:
     version: 5.0.0
-
 dependencies:
   pre:
     - npm i -g npm
     - npm i -g bower
     - npm i js-data@^3.0.0-beta.3
-    - bower i firebase@>=2.4.x
-
+    - bower i
 test:
   override:
     - npm run ci
