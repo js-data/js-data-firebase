@@ -61,13 +61,13 @@
     "ci": "npm test && cat ./coverage/PhantomJS*/lcov.info | codecov"
   },
   "peerDependencies": {
-    "js-data": "^3.0.0-beta.3",
-    "firebase": ">=2.4.x"
-  },
+    "js-data": "^3.0.0-beta.5"
+      },
   "devDependencies": {
     "babel-polyfill": "6.8.0",
     "babel-preset-es2015-rollup": "1.1.1",
-    "js-data-adapter": "0.6.1",
+    "firebase": ">=2.4.x",
+    "js-data-adapter": "0.6.2",
     "js-data-adapter-tests": "^2.0.0-alpha.21",
     "js-data-repo-tools": "0.5.0",
     "karma": "0.13.22",
