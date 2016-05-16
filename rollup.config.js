@@ -6,10 +6,12 @@ module.exports = {
   exports: 'named',
   external: [
     'js-data',
+    'js-data-adapter',
     'firebase'
   ],
   globals: {
     'js-data': 'JSData',
+    'js-data-adapter': 'Adapter',
     'firebase': 'Firebase'
   },
   plugins: [

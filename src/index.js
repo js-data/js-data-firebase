@@ -1,5 +1,5 @@
 import { Query, utils } from 'js-data'
-import { Adapter } from '../node_modules/js-data-adapter/src/index'
+import { Adapter } from 'js-data-adapter'
 import Firebase from 'firebase'
 
 function isValidString (value) {

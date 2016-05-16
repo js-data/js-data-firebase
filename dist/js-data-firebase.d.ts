@@ -13,7 +13,7 @@ interface IBaseFirebaseAdapter extends IBaseAdapter {
   basePath?: string
   baseRef?: Firebase
 }
-export class FirebaseAdapter extends Adapter {
+export class FirebaseAdapter extends Adapter implements IBaseFirebaseAdapter {
   static extend(instanceProps?: IDict, classProps?: IDict): typeof FirebaseAdapter
   constructor(opts?: IBaseFirebaseAdapter)
 }
