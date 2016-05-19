@@ -1,3 +1,12 @@
+##### 3.0.0-beta.2 - 18 May 2016
+
+###### Breaking changes
+- Now requires firebase 3.0.0 or greater
+- The FirebaseAdapter constructor now takes just a "db" option
+
+###### Bug fixes
+- Officially works in Node.js now
+
 ##### 3.0.0-beta.1 - 03 May 2016
 
 Official v3 beta release

@@ -1,6 +1,6 @@
 /*!
 * js-data-firebase
-* @version 3.0.0-beta.1 - Homepage <https://github.com/js-data/js-data-firebase>
+* @version 3.0.0-beta.2 - Homepage <https://github.com/js-data/js-data-firebase>
 * @author Jason Dobry <jason.dobry@gmail.com>
 * @copyright (c) 2014-2016 Jason Dobry
 * @license MIT <https://github.com/js-data/js-data-firebase/blob/master/LICENSE>
@@ -10,10 +10,10 @@
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('js-data'), require('firebase')) :
   typeof define === 'function' && define.amd ? define('js-data-firebase', ['exports', 'js-data', 'firebase'], factory) :
-  (factory((global.JSDataFirebase = global.JSDataFirebase || {}),global.JSData,global.Firebase));
-}(this, function (exports,jsData,Firebase) { 'use strict';
+  (factory((global.JSDataFirebase = global.JSDataFirebase || {}),global.JSData,global.firebase));
+}(this, function (exports,jsData,firebase) { 'use strict';
 
-  Firebase = 'default' in Firebase ? Firebase['default'] : Firebase;
+  firebase = 'default' in firebase ? firebase['default'] : firebase;
 
   var babelHelpers = {};
   babelHelpers.typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
@@ -118,7 +118,7 @@
     return jsData.utils.omit(props, mapper.relationFields || []);
   };
 
-  var DEFAULTS$1 = {
+  var DEFAULTS = {
     /**
      * Whether to log debugging information.
      *
@@ -151,7 +151,7 @@
   function Adapter(opts) {
     var self = this;
     opts || (opts = {});
-    jsData.utils.fillIn(opts, DEFAULTS$1);
+    jsData.utils.fillIn(opts, DEFAULTS);
     jsData.utils.fillIn(self, opts);
   }
 
@@ -1684,59 +1684,53 @@
 
   var __super__ = Adapter.prototype;
 
-  var DEFAULTS = {
-    /**
-     * TODO
-     *
-     * @name FirebaseAdapter#basePath
-     * @type {string}
-     */
-    basePath: ''
-  };
-
-  /**
-   * {@link FirebaseAdapter} class.
-   *
-   * @name module:js-data-firebase.FirebaseAdapter
-   * @see FirebaseAdapter
-   */
-
-  /**
-   * {@link FirebaseAdapter} class. ES2015 default import.
-   *
-   * @name module:js-data-firebase.default
-   * @see FirebaseAdapter
-   */
-
   /**
    * FirebaseAdapter class.
    *
-   * @example
+   * @example <caption>Browser</caption>
    * import {DataStore} from 'js-data'
+   * import firebase from 'firebase'
    * import {FirebaseAdapter} from 'js-data-firebase'
    * const store = new DataStore()
-   * const adapter = new FirebaseAdapter()
+   * firebase.initializeApp({
+   *   apiKey: 'your-api-key',
+   *   databaseURL: 'your-database-url'
+   * })
+   * const adapter = new FirebaseAdapter({ db: firebase.database() })
+   * store.registerAdapter('firebase', adapter, { 'default': true })
+   *
+   * @example <caption>Node.js</caption>
+   * import {Container} from 'js-data'
+   * import firebase from 'firebase'
+   * import {FirebaseAdapter} from 'js-data-firebase'
+   * const store = new Container()
+   * firebase.initializeApp({
+   *   databaseURL: 'your-database-url',
+   *   serviceAccount: 'path/to/keyfile'
+   * })
+   * const adapter = new FirebaseAdapter({ db: firebase.database() })
    * store.registerAdapter('firebase', adapter, { 'default': true })
    *
    * @class FirebaseAdapter
    * @param {Object} [opts] Configuration opts.
-   * @param {string} [opts.basePath=''] See {@link FirebaseAdapter#basePath}
+   * @param {Object} [opts.db] See {@link FirebaseAdapter#db}
+   * @param {boolean} [opts.debug=false] See {@link Adapter#debug}.
+   * @param {boolean} [opts.raw=false] See {@link Adapter#raw}.
    */
   function FirebaseAdapter(opts) {
     jsData.utils.classCallCheck(this, FirebaseAdapter);
     opts || (opts = {});
-    jsData.utils.fillIn(opts, DEFAULTS);
     Adapter.call(this, opts);
 
     /**
-     * The ref instance used by this adapter. Use this directly when you
-     * need to write custom queries.
+     * The database instance used by this adapter.
      *
-     * @name FirebaseAdapter#baseRef
+     * @name FirebaseAdapter#db
      * @type {Object}
+     * @default firebase.database()
      */
-    if (opts.baseRef || opts.basePath) {
-      this.baseRef = opts.baseRef || new Firebase(opts.basePath);
+    if (opts.db) {
+      this.db = opts.db || firebase.database();
     }
   }
 
@@ -1834,7 +1828,7 @@
         itemRef = collectionRef.child(id);
       } else {
         itemRef = collectionRef.push();
-        jsData.utils.set(_props, mapper.idAttribute, itemRef.key());
+        jsData.utils.set(_props, mapper.idAttribute, itemRef.key);
       }
 
       return itemRef.set(_props).then(function () {
@@ -1865,12 +1859,12 @@
           itemRef = collectionRef.child(id);
         } else {
           itemRef = collectionRef.push();
-          jsData.utils.set(_props, idAttribute, itemRef.key());
+          jsData.utils.set(_props, idAttribute, itemRef.key);
         }
         refValueCollection.push({ ref: itemRef, props: _props });
       });
 
-      return this._atomicUpdate(refValueCollection).then(function () {
+      return this._atomicUpdate(mapper, refValueCollection, opts).then(function () {
         // since UDFs and timestamps can alter values on write, let's get the latest values
         return jsData.utils.Promise.all(refValueCollection.map(function (item) {
           return _this2._once(item.ref);
@@ -1890,17 +1884,17 @@
         return dataSnapshot.val();
       });
     },
-    _atomicUpdate: function _atomicUpdate(refValueCollection) {
+    _atomicUpdate: function _atomicUpdate(mapper, refValueCollection, opts) {
       var _this3 = this;
 
       // collection of refs and the new value to set at that ref
-      // do a deep-path update off the baseRef
+      // do a deep-path update off the database
       // see https://www.firebase.com/blog/2015-09-24-atomic-writes-and-more.html
       var atomicUpdate = {};
       refValueCollection.forEach(function (item) {
-        atomicUpdate[item.ref.toString().replace(_this3.baseRef.toString(), '')] = item.props;
+        atomicUpdate[item.ref.toString().replace(_this3.getRef(mapper, opts).toString(), '')] = item.props;
       });
-      return this.baseRef.update(atomicUpdate);
+      return this.getRef(mapper, opts).update(atomicUpdate);
     },
 
 
@@ -2146,7 +2140,7 @@
     },
     getRef: function getRef(mapper, opts) {
       opts = opts || {};
-      return this.baseRef.child(opts.endpoint || mapper.endpoint || mapper.name);
+      return this.db.ref().child(opts.endpoint || mapper.endpoint || mapper.name);
     },
     create: function create(mapper, props, opts) {
       var _this7 = this;
@@ -2229,16 +2223,48 @@
    */
 
   var version = {
-  beta: 1,
-  full: '3.0.0-beta.1',
+  beta: 2,
+  full: '3.0.0-beta.2',
   major: 3,
   minor: 0,
   patch: 0
 };
 
+  /**
+   * {@link FirebaseAdapter} class.
+   *
+   * @name module:js-data-firebase.FirebaseAdapter
+   * @see FirebaseAdapter
+   */
+
+  /**
+   * Registered as `js-data-firebase` in NPM and Bower.
+   *
+   * @example <caption>Script tag</caption>
+   * var FirebaseAdapter = window.JSDataFirebase.FirebaseAdapter
+   * var adapter = new FirebaseAdapter()
+   *
+   * @example <caption>CommonJS</caption>
+   * var FirebaseAdapter = require('js-data-firebase').FirebaseAdapter
+   * var adapter = new FirebaseAdapter()
+   *
+   * @example <caption>ES2015 Modules</caption>
+   * import {FirebaseAdapter} from 'js-data-firebase'
+   * const adapter = new FirebaseAdapter()
+   *
+   * @example <caption>AMD</caption>
+   * define('myApp', ['js-data-firebase'], function (JSDataFirebase) {
+   *   var FirebaseAdapter = JSDataFirebase.FirebaseAdapter
+   *   var adapter = new FirebaseAdapter()
+   *
+   *   // ...
+   * })
+   *
+   * @module js-data-firebase
+   */
+
   exports.FirebaseAdapter = FirebaseAdapter;
   exports.version = version;
-  exports['default'] = FirebaseAdapter;
 
 }));
 //# sourceMappingURL=js-data-firebase.js.map

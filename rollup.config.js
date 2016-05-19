@@ -3,16 +3,20 @@ var babel = require('rollup-plugin-babel')
 module.exports = {
   moduleName: 'JSDataFirebase',
   moduleId: 'js-data-firebase',
-  exports: 'named',
   external: [
     'js-data',
     'firebase'
   ],
   globals: {
     'js-data': 'JSData',
-    'firebase': 'Firebase'
+    'firebase': 'firebase'
   },
   plugins: [
-    babel()
+    babel({
+      babelrc: false,
+      presets: [
+        'es2015-rollup'
+      ]
+    })
   ]
 }

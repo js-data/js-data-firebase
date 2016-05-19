@@ -24,6 +24,6 @@
   ],
   "dependencies": {
     "js-data": "~3.x",
-    "firebase": ">=2.4.x"
+    "firebase": ">=3.0.0"
   }
 }

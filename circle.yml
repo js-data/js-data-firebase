@@ -4,17 +4,18 @@ general:
       - gh-pages
 machine:
   node:
-    version: 5.0.0
+    version: 5.7.0
 dependencies:
   pre:
     - npm i -g npm
-    - npm i -g bower
-    - npm i js-data@^3.0.0-beta.3
-    - bower i
+    - npm i -g nyc codecov
+    - npm i js-data@^3.0.0-beta.6 firebase
 test:
-  override:
-    - npm run ci
+  pre:
+    - echo $KARMA_CONFIG > config.js
+    - echo $KEYFILE > key.json
+  post:
+    - nyc report --reporter=lcov | codecov
 general:
   artifacts:
     - "dist"
-    - "coverage"

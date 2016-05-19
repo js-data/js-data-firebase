@@ -60,22 +60,13 @@ module.exports = function (config) {
     files: [
       'node_modules/babel-polyfill/dist/polyfill.js',
       'node_modules/js-data/dist/js-data.js',
-      'bower_components/firebase/firebase.js',
+      'node_modules/firebase/firebase.js',
       'dist/js-data-firebase.js',
-      'node_modules/js-data-adapter-tests/dist/js-data-adapter-tests.js',
+      'node_modules/js-data-adapter/dist/js-data-adapter-tests.js',
+      process.env.CONFIG_FILENAME || 'config.js', // You must create this file
       'karma.start.js'
     ],
-    reporters: ['dots', 'coverage'],
-    preprocessors: {
-      'dist/js-data-firebase.js': ['coverage']
-    },
-    coverageReporter: {
-      type: 'lcov',
-      dir: 'coverage/',
-      instrumenterOptions: {
-        istanbul: { noCompact: true }
-      }
-    },
+    reporters: ['dots'],
     browserStack: {
       username: process.env.BROWSERSTACK_USERNAME,
       accessKey: process.env.BROWSERSTACK_ACCESS_KEY

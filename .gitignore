@@ -9,7 +9,9 @@ coverage/
 
 npm-debug.log
 junit/
-dist/karma.start.js
 doc/
 typings/
 .vscode
+key.json
+config.js
+.nyc_output/

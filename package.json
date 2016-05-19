@@ -1,7 +1,7 @@
 {
   "name": "js-data-firebase",
   "description": "Firebase adapter for js-data.",
-  "version": "3.0.0-beta.1",
+  "version": "3.0.0-beta.2",
   "homepage": "https://github.com/js-data/js-data-firebase",
   "repository": {
     "type": "git",
@@ -45,7 +45,7 @@
   },
   "babel": {
     "presets": [
-      "es2015-rollup"
+      "es2015"
     ]
   },
   "scripts": {
@@ -56,31 +56,30 @@
     "banner": "node scripts/banner.js",
     "build": "npm run lint && npm run bundle && npm run min && npm run banner",
     "karma": "karma start",
-    "test": "npm run build && npm run karma",
+    "mocha": "mocha -t 20000 -R dot -r babel-polyfill mocha.start.js",
+    "cover": "nyc --require babel-polyfill --cache mocha -t 20000 -R dot mocha.start.js && nyc report --reporter=html",
+    "test": "npm run build && npm run karma && npm run mocha",
     "release": "npm test && npm run doc && repo-tools updates && repo-tools changelog && repo-tools authors",
     "ci": "npm test && cat ./coverage/PhantomJS*/lcov.info | codecov"
   },
   "peerDependencies": {
-    "js-data": "^3.0.0-beta.3",
-    "firebase": ">=2.4.x"
+    "js-data": "^3.0.0-beta.6",
+    "firebase": ">=3.0.0"
+  },
+  "dependencies": {
+    "js-data-adapter": "0.7.2"
   },
   "devDependencies": {
-    "babel-polyfill": "6.8.0",
-    "babel-preset-es2015-rollup": "1.1.1",
-    "js-data-adapter": "0.6.1",
-    "js-data-adapter-tests": "^2.0.0-alpha.21",
-    "js-data-repo-tools": "0.5.0",
+    "js-data-repo-tools": "0.5.2",
     "karma": "0.13.22",
     "karma-browserstack-launcher": "1.0.0",
     "karma-chai": "0.1.0",
-    "karma-coverage": "1.0.0",
     "karma-mocha": "1.0.1",
     "karma-phantomjs-launcher": "1.0.0",
-    "karma-sinon": "1.0.4",
+    "karma-sinon": "1.0.5",
     "mout": "1.0.0",
     "phantomjs-prebuilt": "2.1.7",
-    "rollup": "0.26.2",
-    "rollup-plugin-babel": "2.4.0",
+    "rollup-plugin-replace": "^1.1.0",
     "uglify-js": "2.6.2"
   }
 }

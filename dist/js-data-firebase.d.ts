@@ -10,8 +10,7 @@ interface IBaseAdapter extends IDict {
   raw?: boolean
 }
 interface IBaseFirebaseAdapter extends IBaseAdapter {
-  basePath?: string
-  baseRef?: Firebase
+  db?: any
 }
 export class FirebaseAdapter extends Adapter {
   static extend(instanceProps?: IDict, classProps?: IDict): typeof FirebaseAdapter

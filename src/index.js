@@ -1,6 +1,6 @@
-import { Query, utils } from 'js-data'
-import { Adapter } from '../node_modules/js-data-adapter/src/index'
-import Firebase from 'firebase'
+import {Query, utils} from 'js-data'
+import {Adapter} from '../node_modules/js-data-adapter/src/index'
+import firebase from 'firebase'
 
 function isValidString (value) {
   return (value != null && value !== '')
@@ -55,59 +55,53 @@ function createTask (fn) {
 
 const __super__ = Adapter.prototype
 
-const DEFAULTS = {
-  /**
-   * TODO
-   *
-   * @name FirebaseAdapter#basePath
-   * @type {string}
-   */
-  basePath: ''
-}
-
-/**
- * {@link FirebaseAdapter} class.
- *
- * @name module:js-data-firebase.FirebaseAdapter
- * @see FirebaseAdapter
- */
-
-/**
- * {@link FirebaseAdapter} class. ES2015 default import.
- *
- * @name module:js-data-firebase.default
- * @see FirebaseAdapter
- */
-
 /**
  * FirebaseAdapter class.
  *
- * @example
+ * @example <caption>Browser</caption>
  * import {DataStore} from 'js-data'
+ * import firebase from 'firebase'
  * import {FirebaseAdapter} from 'js-data-firebase'
  * const store = new DataStore()
- * const adapter = new FirebaseAdapter()
+ * firebase.initializeApp({
+ *   apiKey: 'your-api-key',
+ *   databaseURL: 'your-database-url'
+ * })
+ * const adapter = new FirebaseAdapter({ db: firebase.database() })
+ * store.registerAdapter('firebase', adapter, { 'default': true })
+ *
+ * @example <caption>Node.js</caption>
+ * import {Container} from 'js-data'
+ * import firebase from 'firebase'
+ * import {FirebaseAdapter} from 'js-data-firebase'
+ * const store = new Container()
+ * firebase.initializeApp({
+ *   databaseURL: 'your-database-url',
+ *   serviceAccount: 'path/to/keyfile'
+ * })
+ * const adapter = new FirebaseAdapter({ db: firebase.database() })
  * store.registerAdapter('firebase', adapter, { 'default': true })
  *
  * @class FirebaseAdapter
  * @param {Object} [opts] Configuration opts.
- * @param {string} [opts.basePath=''] See {@link FirebaseAdapter#basePath}
+ * @param {Object} [opts.db] See {@link FirebaseAdapter#db}
+ * @param {boolean} [opts.debug=false] See {@link Adapter#debug}.
+ * @param {boolean} [opts.raw=false] See {@link Adapter#raw}.
  */
 export function FirebaseAdapter (opts) {
   utils.classCallCheck(this, FirebaseAdapter)
   opts || (opts = {})
-  utils.fillIn(opts, DEFAULTS)
   Adapter.call(this, opts)
 
   /**
-   * The ref instance used by this adapter. Use this directly when you
-   * need to write custom queries.
+   * The database instance used by this adapter.
    *
-   * @name FirebaseAdapter#baseRef
+   * @name FirebaseAdapter#db
    * @type {Object}
+   * @default firebase.database()
    */
-  if (opts.baseRef || opts.basePath) {
-    this.baseRef = opts.baseRef || new Firebase(opts.basePath)
+  if (opts.db) {
+    this.db = opts.db || firebase.database()
   }
 }
 
@@ -202,7 +196,7 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
       itemRef = collectionRef.child(id)
     } else {
       itemRef = collectionRef.push()
-      utils.set(_props, mapper.idAttribute, itemRef.key())
+      utils.set(_props, mapper.idAttribute, itemRef.key)
     }
 
     return itemRef.set(_props)
@@ -232,12 +226,12 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
         itemRef = collectionRef.child(id)
       } else {
         itemRef = collectionRef.push()
-        utils.set(_props, idAttribute, itemRef.key())
+        utils.set(_props, idAttribute, itemRef.key)
       }
       refValueCollection.push({ ref: itemRef, props: _props })
     })
 
-    return this._atomicUpdate(refValueCollection)
+    return this._atomicUpdate(mapper, refValueCollection, opts)
       .then(() => {
         // since UDFs and timestamps can alter values on write, let's get the latest values
         return utils.Promise.all(refValueCollection.map((item) => this._once(item.ref)))
@@ -257,14 +251,14 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
     })
   },
 
-  _atomicUpdate (refValueCollection) { // collection of refs and the new value to set at that ref
-    // do a deep-path update off the baseRef
+  _atomicUpdate (mapper, refValueCollection, opts) { // collection of refs and the new value to set at that ref
+    // do a deep-path update off the database
     // see https://www.firebase.com/blog/2015-09-24-atomic-writes-and-more.html
     let atomicUpdate = {}
     refValueCollection.forEach((item) => {
-      atomicUpdate[item.ref.toString().replace(this.baseRef.toString(), '')] = item.props
+      atomicUpdate[item.ref.toString().replace(this.getRef(mapper, opts).toString(), '')] = item.props
     })
-    return this.baseRef.update(atomicUpdate)
+    return this.getRef(mapper, opts).update(atomicUpdate)
   },
 
   /**
@@ -483,7 +477,7 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
 
   getRef (mapper, opts) {
     opts = opts || {}
-    return this.baseRef.child(opts.endpoint || mapper.endpoint || mapper.name)
+    return this.db.ref().child(opts.endpoint || mapper.endpoint || mapper.name)
   },
 
   create (mapper, props, opts) {
@@ -561,6 +555,13 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
 export const version = '<%= version %>'
 
 /**
+ * {@link FirebaseAdapter} class.
+ *
+ * @name module:js-data-firebase.FirebaseAdapter
+ * @see FirebaseAdapter
+ */
+
+/**
  * Registered as `js-data-firebase` in NPM and Bower.
  *
  * @example <caption>Script tag</caption>
@@ -585,5 +586,3 @@ export const version = '<%= version %>'
  *
  * @module js-data-firebase
  */
-
-export default FirebaseAdapter
