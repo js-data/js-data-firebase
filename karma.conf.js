@@ -54,17 +54,14 @@ module.exports = function (config) {
         timeout: 10000 // had to increase the delay due to timeouts with firebase
       }
     },
-    autoWatch: false,
-    autoWatchBatchDelay: 4000,
     browsers: browsers,
     files: [
       'node_modules/babel-polyfill/dist/polyfill.js',
       'node_modules/js-data/dist/js-data.js',
-      'node_modules/js-data-adapter/dist/js-data-adapter.js',
-      'bower_components/firebase/firebase.js',
+      'node_modules/firebase/firebase.js',
       'dist/js-data-firebase.js',
-      'node_modules/js-data-adapter-tests/dist/js-data-adapter-tests.js',
-      'karma.start.js'
+      'karma.start.js',
+      'test/*.test.js'
     ],
     reporters: ['dots', 'coverage'],
     preprocessors: {
@@ -88,6 +85,8 @@ module.exports = function (config) {
     colors: true,
     logLevel: config.LOG_INFO,
     captureTimeout: 90000,
-    singleRun: true
+    singleRun: true,
+    autoWatch: false,
+    autoWatchBatchDelay: 4000
   })
 }

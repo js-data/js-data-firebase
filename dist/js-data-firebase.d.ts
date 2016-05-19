@@ -11,7 +11,7 @@ interface IBaseAdapter extends IDict {
 }
 interface IBaseFirebaseAdapter extends IBaseAdapter {
   basePath?: string
-  baseRef?: Firebase
+  baseRef?: any // todo make add firebase typings
 }
 export class FirebaseAdapter extends Adapter implements IBaseFirebaseAdapter {
   static extend(instanceProps?: IDict, classProps?: IDict): typeof FirebaseAdapter

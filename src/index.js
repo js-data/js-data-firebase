@@ -1,6 +1,7 @@
 import { Query, utils } from 'js-data'
-import { Adapter } from 'js-data-adapter'
-import Firebase from 'firebase'
+import { Adapter } from '../node_modules/js-data-adapter/src/index'
+import firebase from 'firebase'
+const Firebase = firebase // changed to lowercase in v3
 
 function isValidString (value) {
   return (value != null && value !== '')

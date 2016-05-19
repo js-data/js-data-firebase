@@ -61,28 +61,29 @@
     "ci": "npm test && cat ./coverage/PhantomJS*/lcov.info | codecov"
   },
   "peerDependencies": {
-    "js-data": "^3.0.0-beta.5"
+    "js-data": "^3.0.0-beta.6"
   },
   "dependencies": {
-    "js-data-adapter": "0.6.2"
+    "firebase": "3.0.1",
+    "js-data-adapter": "^0.7.2"
   },
   "devDependencies": {
-    "babel-polyfill": "6.8.0",
+    "babel-polyfill": "6.9.0",
     "babel-preset-es2015-rollup": "1.1.1",
-    "firebase": ">=2.4.x",
-    "js-data-adapter-tests": "^2.0.0-alpha.21",
-    "js-data-repo-tools": "0.5.0",
+    "js-data-repo-tools": "^0.5.2",
     "karma": "0.13.22",
     "karma-browserstack-launcher": "1.0.0",
     "karma-chai": "0.1.0",
     "karma-coverage": "1.0.0",
     "karma-mocha": "1.0.1",
     "karma-phantomjs-launcher": "1.0.0",
-    "karma-sinon": "1.0.4",
+    "karma-sinon": "1.0.5",
     "mout": "1.0.0",
     "phantomjs-prebuilt": "2.1.7",
-    "rollup": "0.26.2",
+    "rollup": "0.26.3",
     "rollup-plugin-babel": "2.4.0",
+    "rollup-plugin-commonjs": "2.2.1",
+    "rollup-plugin-node-resolve": "1.5.0",
     "uglify-js": "2.6.2"
   }
 }
