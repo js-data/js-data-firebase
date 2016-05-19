@@ -8,8 +8,12 @@ var JSDataFirebase = require('./')
 
 var firebase = require('firebase')
 
+if (!process.env.DATABASE_URL) {
+  throw new Error('You must set the DATABASE_URL environment variable!')
+}
+
 firebase.initializeApp({
-  databaseURL: 'https://js-data-firebase.firebaseio.com',
+  databaseURL: process.env.DATABASE_URL,
   serviceAccount: process.env.KEY_FILENAME || 'key.json'
 })
 
