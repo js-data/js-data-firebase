@@ -4,3 +4,6 @@ node_modules
 doc
 coverage
 dist
+.nyc_output
+key.json
+config.js
