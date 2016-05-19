@@ -40,7 +40,8 @@
     ],
     "ignore": [
       "dist/",
-      "example/"
+      "example/",
+      "config.default.js"
     ]
   },
   "babel": {
@@ -59,8 +60,7 @@
     "mocha": "mocha -t 20000 -R dot -r babel-polyfill mocha.start.js",
     "cover": "nyc --require babel-polyfill --cache mocha -t 20000 -R dot mocha.start.js && nyc report --reporter=html",
     "test": "npm run build && npm run karma && npm run mocha",
-    "release": "npm test && npm run doc && repo-tools updates && repo-tools changelog && repo-tools authors",
-    "ci": "npm test && cat ./coverage/PhantomJS*/lcov.info | codecov"
+    "release": "npm test && npm run doc && repo-tools updates && repo-tools changelog && repo-tools authors"
   },
   "peerDependencies": {
     "js-data": "^3.0.0-beta.6",
