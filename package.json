@@ -51,7 +51,7 @@
     "karma-sinon": "1.0.4",
     "karma-spec-reporter": "0.0.19",
     "time-grunt": "1.2.1",
-    "webpack-dev-server": "1.10.1"
+    "webpack-dev-server": "1.15.1"
   },
   "scripts": {
     "test": "grunt test"
