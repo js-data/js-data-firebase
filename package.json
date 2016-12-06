@@ -67,7 +67,7 @@
     "firebase": ">=3.0.0"
   },
   "dependencies": {
-    "js-data-adapter": "0.7.2"
+    "js-data-adapter": "0.8.3"
   },
   "devDependencies": {
     "js-data-repo-tools": "0.5.2",
