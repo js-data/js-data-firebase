@@ -45,7 +45,6 @@ module.exports = function (config) {
       'karma-mocha',
       'karma-sinon',
       'karma-phantomjs-launcher',
-      'karma-coverage',
       'karma-browserstack-launcher'
     ],
     client: {

@@ -13,7 +13,7 @@ function join (items, separator) {
 
 function makePath (...args) { // eslint-disable-line no-unused-vars
   let result = join(args, '/')
-  return result.replace(/([^:\/]|^)\/{2,}/g, '$1/')
+  return result.replace(/([^:/]|^)\/{2,}/g, '$1/')
 }
 
 let queue = []
