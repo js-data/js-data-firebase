@@ -15,5 +15,3 @@ typings/
 key.json
 config.js
 .nyc_output/
-dist/*.js
-dist/*.map
