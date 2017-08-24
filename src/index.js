@@ -338,7 +338,12 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
   _find (mapper, id, opts) {
     opts || (opts = {})
     const itemRef = this.getRef(mapper, opts).child(id)
-    return this._once(itemRef).then((record) => [record, { ref: itemRef }])
+    return this._once(itemRef).then((record) => {
+      if (!record) {
+        record = undefined;
+      }
+      return [record, { ref: itemRef }]
+    })
   },
   /**
     * Retrieve the records that match the selection query. Internal method used

@@ -1,7 +1,7 @@
 import babel from 'rollup-plugin-babel'
 
 export default {
-  moduleName: 'JSDataFirebase',
+  name: 'JSDataFirebase',
   moduleId: 'js-data-firebase',
   external: [
     'js-data',
@@ -15,7 +15,7 @@ export default {
     babel({
       babelrc: false,
       plugins: [
-        'babel-plugin-external-helpers'
+        'external-helpers'
       ],
       presets: [
         [
