@@ -1,3 +1,7 @@
+##### 3.0.0 - 23 August 2017
+
+Stable 3.0.0 release
+
 ##### 3.0.0-rc.1 - 11 December 2016
 
 - Updated dependencies
