@@ -102,6 +102,7 @@ export function FirebaseAdapter (opts) {
    */
   if (opts.db) {
     this.db = opts.db || firebase.database()
+    this.baseRef = opts.baseRef ? this.db.ref(opts.baseRef) : this.db.ref();
   }
 }
 
@@ -482,7 +483,7 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
 
   getRef (mapper, opts) {
     opts = opts || {}
-    return this.db.ref().child(opts.endpoint || mapper.endpoint || mapper.name)
+    return this.baseRef.child(opts.endpoint || mapper.endpoint || mapper.name)
   },
 
   create (mapper, props, opts) {
