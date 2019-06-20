@@ -14,6 +14,7 @@
 1. `clone git@github.com:js-data/js-data-firebase.git`
 1. `cd js-data-firebase`
 1. `npm install`
+1. `cp config.default.js config.js` and enter testing Firebase connection settings
 1. `npm test` - Lint, build, and test
 
 ## To cut a release
