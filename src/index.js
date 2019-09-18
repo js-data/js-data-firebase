@@ -85,6 +85,7 @@ const __super__ = Adapter.prototype
  * @class FirebaseAdapter
  * @param {Object} [opts] Configuration opts.
  * @param {Object} [opts.db] See {@link FirebaseAdapter#db}
+ * @param {string} [opts.baseRef] See {@link FirebaseAdapter#baseRef}
  * @param {boolean} [opts.debug=false] See {@link Adapter#debug}.
  * @param {boolean} [opts.raw=false] See {@link Adapter#raw}.
  */
@@ -102,6 +103,14 @@ export function FirebaseAdapter (opts) {
    */
   if (opts.db) {
     this.db = opts.db || firebase.database()
+    /**
+     * The base ref to use as a root, e.g. `user/uid`
+     *
+     * @name FirebaseAdapter#baseRef
+     * @type {string}
+     * @default undefined
+     */
+    this.baseRef = opts.baseRef ? this.db.ref(opts.baseRef) : this.db.ref();
   }
 }
 
@@ -482,7 +491,7 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
 
   getRef (mapper, opts) {
     opts = opts || {}
-    return this.db.ref().child(opts.endpoint || mapper.endpoint || mapper.name)
+    return this.baseRef.child(opts.endpoint || mapper.endpoint || mapper.name)
   },
 
   create (mapper, props, opts) {
