@@ -1,7 +1,7 @@
 {
   "name": "js-data-firebase",
   "description": "Firebase adapter for js-data.",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "homepage": "https://github.com/js-data/js-data-firebase",
   "repository": {
     "type": "git",
