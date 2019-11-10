@@ -1,3 +1,7 @@
+##### 3.1.0
+
+- Added option to start with a `baseRef` such as `"users/:uid"`
+
 ##### 3.0.0 - 23 August 2017
 
 Stable 3.0.0 release

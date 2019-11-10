@@ -435,8 +435,8 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
         if (!currentVal) {
           throw new Error('Not Found')
         }
-        utils.deepMixIn(currentVal, props)
-        return itemRef.set(currentVal)
+        const newVal = opts.deepMerge !== false ? utils.deepMixIn(currentVal, props) : props
+        return itemRef.set(newVal)
       })
       .then(() => this._once(itemRef))
       .then((record) => {
