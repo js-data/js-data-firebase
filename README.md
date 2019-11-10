@@ -30,6 +30,7 @@ window.firebase.initializeApp({
 
 // Create an instance of FirebaseAdapter
 const adapter = new FirebaseAdapter({
+  // baseRef: 'users', // optionally set a baseRef root
   db: window.firebase.database()
 });
 

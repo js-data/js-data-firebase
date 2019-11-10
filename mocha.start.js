@@ -4,6 +4,7 @@
 var JSData = require('js-data')
 var JSDataAdapterTests = require('./node_modules/js-data-adapter/dist/js-data-adapter-tests')
 var JSDataFirebase = require('./')
+require('dotenv').config()
 
 var firebase = require('firebase')
 
