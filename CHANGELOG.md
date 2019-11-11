@@ -1,4 +1,4 @@
-##### 3.1.0
+##### 3.2.0
 
 - Added option to start with a `baseRef` such as `"users/:uid"`
 
