@@ -423,6 +423,7 @@ utils.addHiddenPropsToTarget(FirebaseAdapter.prototype, {
    * @param {(string|number)} id The primary key of the record to be updated.
    * @param {Object} props The update to apply to the record.
    * @param {Object} [opts] Configuration options.
+   * @param {boolean} [opts.deepMerge] Disable deep merging with current value by passing `false`
    * @return {Promise}
    */
   _update (mapper, id, props, opts) {
