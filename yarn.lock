@@ -3324,13 +3324,9 @@ js-data-repo-tools@1.0.0:
     npm-check-updates "2.8.9"
     standard "8.6.0"
 
-"js-data@>= 3.0.0":
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/js-data/-/js-data-3.0.1.tgz#84d0c5e3031b7fd645b25db4c6e0aab8911df202"
-
-js-data@^3.0.8:
-  version "3.0.8"
-  resolved "https://registry.yarnpkg.com/js-data/-/js-data-3.0.8.tgz#267fbc5bfda9db0e77f6fd063be7be521adcc4d4"
+"js-data@>= 3.0.0", js-data@^3.0.8:
+  version "3.0.11"
+  resolved "https://registry.yarnpkg.com/js-data/-/js-data-3.0.11.tgz#2bbca273342de9fc6671daf234a91e5bffda22a0"
 
 js-tokens@^2.0.0:
   version "2.0.0"
